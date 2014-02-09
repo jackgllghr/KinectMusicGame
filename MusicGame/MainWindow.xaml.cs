@@ -25,7 +25,7 @@ namespace MusicGame
     /// </summary>
     public partial class MainWindow : Window
     {
-
+        int s = 0;
         private KinectSensorChooser sensorChooser;
         private KinectSensor _sensor;  //The Kinect Sensor the application will use
         private InteractionStream _interactionStream;
