@@ -2,17 +2,35 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:k="http://schemas.microsoft.com/kinect/2013"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Width="1280" Height="720">
     <Grid>
         <k:KinectSensorChooserUI HorizontalAlignment="Center" VerticalAlignment="Top" Name="sensorChooserUi" />
         <k:KinectUserViewer VerticalAlignment="Top" HorizontalAlignment="Center" k:KinectRegion.KinectRegion="{Binding ElementName=kinectRegion}" Height="100" />
         
         <k:KinectRegion Name="kinectRegion">
-            <Canvas Name="tracks" Margin="0,120,0,0" Height="118" VerticalAlignment="Top">
+            <Canvas Name="tracks" Margin="0,400,0,0" Height="250" VerticalAlignment="Top">
+                <Canvas Name="guitarTrack" Margin="236,0,0,0">
+                    <Rectangle Name="slot1" Width="100" Height="100" Fill="PaleGreen" Margin="0,0,0,0"></Rectangle>
+                    <Rectangle Name="slot2" Width="100" Height="100" Fill="PaleGreen" Margin="101,0,0,0"></Rectangle>
+                    <Rectangle Name="slot3" Width="100" Height="100" Fill="PaleGreen" Margin="202,0,0,0"></Rectangle>
+                    <Rectangle Name="slot4" Width="100" Height="100" Fill="PaleGreen" Margin="303,0,0,0"></Rectangle>
+                    <Rectangle Name="slot5" Width="100" Height="100" Fill="PaleGreen" Margin="404,0,0,0"></Rectangle>
+                    <Rectangle Name="slot6" Width="100" Height="100" Fill="PaleGreen" Margin="505,0,0,0"></Rectangle>
+                    <Rectangle Name="slot7" Width="100" Height="100" Fill="PaleGreen" Margin="606,0,0,0"></Rectangle>
+                    <Rectangle Name="slot8" Width="100" Height="100" Fill="PaleGreen" Margin="707,0,0,0"></Rectangle>
+                </Canvas>
+                <k:KinectCircleButton Name="playButton" Click="playButton_Click" Height="100" Canvas.Left="120">
+                    <Image Name="playButtonImage" Source="C:\Users\Jack\Development\se413008\MusicGame\Assets\Icons\playButton.png"/>
+                </k:KinectCircleButton>
+                <k:KinectTileButton Background="PaleTurquoise" Name="SolutionButton" Height="100" Canvas.Top="120" Margin="450,0,0,0" Width="380">Play Solution</k:KinectTileButton>
+                
+                <k:KinectItemsControl ></k:KinectItemsControl>
             </Canvas>
+            
         </k:KinectRegion>
         <Viewbox Margin="0,116,0,0" SnapsToDevicePixels="False">
             <TextBlock Name="tb" FontFamily="Helvetica" Text="Initializing..." FontSize="10" Visibility="Hidden" />
         </Viewbox>
+
     </Grid>
 </Window>

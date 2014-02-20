@@ -9,7 +9,7 @@ namespace MusicGame
     class Sound
     {
         System.Media.SoundPlayer player;
-        public String name, type;
+        String name, type;
         
         public Sound(
             String soundFile, 

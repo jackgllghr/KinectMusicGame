@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Media;
+using System.Resources;
+using System.Drawing;
+using MusicGame.Properties;
 
 namespace MusicGame
 {
@@ -13,17 +16,17 @@ namespace MusicGame
         Sound s;
         Boolean isMoving = false;
         Boolean isPlaying = true;
-        
+        Image img;        
 
         //Constructers
-        Sample(Sound sound)
+        public Sample(Sound sound)
         {
             s = sound;
             x = 0;
             y = 0;
 
             size = 1;
-            //setIcon();
+            setIcon();
         }
         Sample(Sound sound, float newX, float newY, float slotSize)
         {
@@ -62,21 +65,21 @@ namespace MusicGame
         }
 
         //Setters
-        //void setIcon()
-        //{
-        //    if (s.getType().toLowerCase() == "guitar")
-        //    {
-        //        Image img = loadImage("Icons/guitar.png");
-        //    }
-        //    else if (s.getType().toLowerCase() == "bass")
-        //    {
-        //        icon = loadImage("Icons/bass.png");
-        //    }
-        //    else if (s.getType().toLowerCase() == "drums")
-        //    {
-        //        icon = loadImage("Icons/drums.png");
-        //    }
-        //}
+        void setIcon()
+        {
+            if (s.getType().ToLower() == "guitar")
+            {
+                //img = Image.FromFile(Resources.ProjectPath+"./Assets/Icons/guitar.png");
+            }
+            else if (s.getType().ToLower() == "bass")
+            {
+                //icon = loadImage("Icons/bass.png");
+            }
+            else if (s.getType().ToLower() == "drums")
+            {
+                //icon = loadImage("Icons/drums.png");
+            }
+        }
         public void setXY(float newX, float newY)
         {
             x = newX;
@@ -92,7 +95,7 @@ namespace MusicGame
         }
         public String getType()
         {
-            return s.type;
+            return s.getType();
         }
         public Boolean getMoving() {
             return isMoving;

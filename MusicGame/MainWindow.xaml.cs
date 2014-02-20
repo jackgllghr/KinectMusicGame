@@ -12,6 +12,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Timers;
+
 
 using Microsoft.Kinect.Toolkit;
 using Microsoft.Kinect;
@@ -26,6 +28,15 @@ namespace MusicGame
     public partial class MainWindow : Window
     {
         int s = 0;
+
+        Sound a, b, c, applause;
+        int currTime = 0, prevtime;
+        int len = 8;
+
+        Sample[] g=new Sample[4];
+        Timer time;
+        Sample[] guitarTrackSlots = new Sample[8];
+
         private KinectSensorChooser sensorChooser;
         private KinectSensor _sensor;  //The Kinect Sensor the application will use
         private InteractionStream _interactionStream;
@@ -36,43 +47,70 @@ namespace MusicGame
         {
             InitializeComponent();
             Loaded += OnLoaded;
+            
         }
-
         private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
             this.sensorChooser = new KinectSensorChooser();
             this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
             this.sensorChooserUi.KinectSensorChooser = this.sensorChooser;
-            //this.sensorChooser.Start();
+            this.sensorChooser.Start();
 
              _sensor = KinectSensor.KinectSensors.FirstOrDefault();
-            if (_sensor == null)
+            //if (_sensor == null)
+            //{
+            //    MessageBox.Show("No Kinect Sensor detected!");
+            //    Close();
+            //    return;
+            //}
+            if (_sensor != null)
             {
-                MessageBox.Show("No Kinect Sensor detected!");
-                Close();
-                return;
+                _skeletons = new Skeleton[_sensor.SkeletonStream.FrameSkeletonArrayLength];
+                _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
+
+
+                _sensor.DepthStream.Range = DepthRange.Default;
+                _sensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
+
+                _sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                _sensor.SkeletonStream.EnableTrackingInNearRange = false;
+                _sensor.SkeletonStream.Enable();
+
+                _interactionStream = new InteractionStream(_sensor, new DummyInteractionClient());
+                _interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
+
+                _sensor.DepthFrameReady += SensorOnDepthFrameReady;
+                _sensor.SkeletonFrameReady += SensorOnSkeletonFrameReady;
+
+                _sensor.Start();
             }
-            drawTrack(16);
 
-            _skeletons = new Skeleton[_sensor.SkeletonStream.FrameSkeletonArrayLength];
-            _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
+            //drawTrack(len);
 
+            //Start the timer
+            time = new Timer(1000);
+            time.Elapsed += new ElapsedEventHandler(time_Tick);
+            time.Start();
 
-            _sensor.DepthStream.Range = DepthRange.Default;
-            _sensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
+            a=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\GuitarC.wav", "C-Chord", "guitar");
+            b=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\GuitarD.wav", "D-Chord", "guitar");
+            c=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\GuitarG.wav", "G-Chord", "guitar");
+            applause=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\applause.wav", "Applause", "cheer");
+            
+            g[0] = new Sample(a);
+            g[1] = new Sample(b);
+            g[2] = new Sample(c);
+            g[3] = new Sample(c);
 
-            _sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
-            _sensor.SkeletonStream.EnableTrackingInNearRange = false;
-            _sensor.SkeletonStream.Enable();
+            guitarTrackSlots[0] = g[0];
+            guitarTrackSlots[2] = g[1];
+            guitarTrackSlots[4] = g[2];
+            guitarTrackSlots[6] = g[3];
 
-            _interactionStream = new InteractionStream(_sensor, new DummyInteractionClient());
-            _interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
-
-            _sensor.DepthFrameReady += SensorOnDepthFrameReady;
-            _sensor.SkeletonFrameReady += SensorOnSkeletonFrameReady;
-
-            _sensor.Start();
+            MessageBox.Show(MusicGame.Properties.Resources.ProjectPath);
+            
         }
+        
         private void SensorChooserOnKinectChanged(object sender, KinectChangedEventArgs args)
         {
          bool error = false;
@@ -90,6 +128,7 @@ namespace MusicGame
                // KinectSensor might enter an invalid state while enabling/disabling streams or stream features.
                 // E.g.: sensor might be abruptly unplugged.
                 error = true;
+
             }
         }
      
@@ -164,7 +203,6 @@ namespace MusicGame
         }
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
-
         private void InteractionStreamOnInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args)
         {
             using (var iaf = args.OpenInteractionFrame()) //dispose as soon as possible
@@ -230,7 +268,6 @@ namespace MusicGame
                 tb.Text = "No user detected.";
 
         }
-
         private void ButtonOnClick(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("Well done!");
@@ -241,14 +278,32 @@ namespace MusicGame
             {
                 Rectangle r = new Rectangle
                 {
-                    Width = 80,
-                    Height = 80,
-                    Margin = new System.Windows.Thickness(81 * i, 0, 0, 0),
-                    Fill = Brushes.PaleGreen
+                    Width = 100,
+                    Height = 100,
+                    Margin = new System.Windows.Thickness(101 * i, 0, 0, 0),
+                    Fill = Brushes.PaleGreen,
+                    Name="slot"+(i+1)
                 };
-                tracks.Children.Add(r);
+               
+                guitarTrack.Children.Add(r);
 
             }
+            guitarTrack.Margin = new System.Windows.Thickness(236,0,0,0);
+        }
+        public void time_Tick(object sender, EventArgs e)
+        {
+            
+            if (currTime == len - 1) {
+                currTime = 0;
+            }
+            if (guitarTrackSlots[currTime] != null) {
+                guitarTrackSlots[currTime].play();
+            }
+            currTime++;
+        }
+        private void playButton_Click(object sender, RoutedEventArgs e)
+        {
+            a.play();
         }
 
     }

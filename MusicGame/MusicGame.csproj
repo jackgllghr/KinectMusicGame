@@ -49,6 +49,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -110,8 +111,22 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Content Include="Assets\GuitarC.wav" />
+    <Resource Include="Assets\Icons\bass.png" />
+    <Resource Include="Assets\Icons\drums.png" />
+    <Resource Include="Assets\Icons\guitar.png" />
+    <Resource Include="Assets\Icons\pauseButton.png" />
+    <Resource Include="Assets\Icons\playButton.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets\Sounds\applause.wav" />
+    <Content Include="Assets\Sounds\GuitarC.wav" />
+    <Content Include="Assets\Sounds\GuitarD.wav" />
+    <Content Include="Assets\Sounds\GuitarG.wav" />
+    <Content Include="Assets\Sounds\hihat.wav" />
+    <Content Include="Assets\Sounds\kick.wav" />
+    <Content Include="Assets\Sounds\snare.wav" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
