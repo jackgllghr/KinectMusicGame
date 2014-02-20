@@ -69,15 +69,15 @@ namespace MusicGame
         {
             if (s.getType().ToLower() == "guitar")
             {
-                //img = Image.FromFile(Resources.ProjectPath+"./Assets/Icons/guitar.png");
+                img = Image.FromFile("Assets/Icons/guitar.png");
             }
             else if (s.getType().ToLower() == "bass")
             {
-                //icon = loadImage("Icons/bass.png");
+                img = Image.FromFile("Assets/Icons/bass.png");
             }
             else if (s.getType().ToLower() == "drums")
             {
-                //icon = loadImage("Icons/drums.png");
+                img = Image.FromFile("Assets/Icons/drums.png");
             }
         }
         public void setXY(float newX, float newY)

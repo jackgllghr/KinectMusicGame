@@ -92,10 +92,10 @@ namespace MusicGame
             time.Elapsed += new ElapsedEventHandler(time_Tick);
             time.Start();
 
-            a=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\GuitarC.wav", "C-Chord", "guitar");
-            b=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\GuitarD.wav", "D-Chord", "guitar");
-            c=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\GuitarG.wav", "G-Chord", "guitar");
-            applause=new Sound("C:\\Users\\Jack\\Development\\se413008\\MusicGame\\Assets\\Sounds\\applause.wav", "Applause", "cheer");
+            a=new Sound("Assets/Sounds/GuitarC.wav", "C-Chord", "guitar");
+            b=new Sound("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
+            c=new Sound("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
+            applause=new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
             
             g[0] = new Sample(a);
             g[1] = new Sample(b);
@@ -107,8 +107,6 @@ namespace MusicGame
             guitarTrackSlots[4] = g[2];
             guitarTrackSlots[6] = g[3];
 
-            MessageBox.Show(MusicGame.Properties.Resources.ProjectPath);
-            
         }
         
         private void SensorChooserOnKinectChanged(object sender, KinectChangedEventArgs args)

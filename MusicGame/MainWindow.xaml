@@ -6,7 +6,7 @@
     <Grid>
         <k:KinectSensorChooserUI HorizontalAlignment="Center" VerticalAlignment="Top" Name="sensorChooserUi" />
         <k:KinectUserViewer VerticalAlignment="Top" HorizontalAlignment="Center" k:KinectRegion.KinectRegion="{Binding ElementName=kinectRegion}" Height="100" />
-        
+
         <k:KinectRegion Name="kinectRegion">
             <Canvas Name="tracks" Margin="0,400,0,0" Height="250" VerticalAlignment="Top">
                 <Canvas Name="guitarTrack" Margin="236,0,0,0">
@@ -20,13 +20,11 @@
                     <Rectangle Name="slot8" Width="100" Height="100" Fill="PaleGreen" Margin="707,0,0,0"></Rectangle>
                 </Canvas>
                 <k:KinectCircleButton Name="playButton" Click="playButton_Click" Height="100" Canvas.Left="120">
-                    <Image Name="playButtonImage" Source="C:\Users\Jack\Development\se413008\MusicGame\Assets\Icons\playButton.png"/>
+                    <Image Name="playButtonImage" Source="Assets\Icons\playButton.png"/>
                 </k:KinectCircleButton>
-                <k:KinectTileButton Background="PaleTurquoise" Name="SolutionButton" Height="100" Canvas.Top="120" Margin="450,0,0,0" Width="380">Play Solution</k:KinectTileButton>
-                
-                <k:KinectItemsControl ></k:KinectItemsControl>
+                <k:KinectTileButton Background="RoyalBlue" TextElement.Foreground="AntiqueWhite" Name="SolutionButton" Height="76" Canvas.Top="119" Width="380" Canvas.Left="450">Play Solution</k:KinectTileButton>
             </Canvas>
-            
+
         </k:KinectRegion>
         <Viewbox Margin="0,116,0,0" SnapsToDevicePixels="False">
             <TextBlock Name="tb" FontFamily="Helvetica" Text="Initializing..." FontSize="10" Visibility="Hidden" />
