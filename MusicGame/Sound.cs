@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Media;
+using WMPLib;
 
 namespace MusicGame
 {
     class Sound
     {
-        System.Media.SoundPlayer player;
+        SoundPlayer player;
         String name, type;
         
         public Sound(
@@ -16,8 +17,8 @@ namespace MusicGame
             String soundName,
             String soundType)
             {
-                player = new System.Media.SoundPlayer(soundFile);
-
+                player = new SoundPlayer(soundFile);
+               
                 name = soundName;
                 type = soundType;
             }

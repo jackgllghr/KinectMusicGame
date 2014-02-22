@@ -13,6 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Timers;
+using Microsoft.Speech.AudioFormat;
+using Microsoft.Speech.Recognition;
 
 
 using Microsoft.Kinect.Toolkit;
@@ -26,23 +28,26 @@ namespace MusicGame
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {
-        int s = 0;
+    { 
+        private SpeechRecognitionEngine speechEngine;
 
-        Sound a, b, c, applause;
-        int currTime = 0, prevtime;
+        Sound a, b, c, applause, backtrack;
+        int currTime = 0;
         int len = 8;
-
+        
         Sample[] g=new Sample[4];
         Timer time;
-        Sample[] guitarTrackSlots = new Sample[8];
+        Track gt;
 
+        ImageSource playImg, pauseImg;
+        
         private KinectSensorChooser sensorChooser;
-        private KinectSensor _sensor;  //The Kinect Sensor the application will use
         private InteractionStream _interactionStream;
+        //private EventHandler<HandPointerEventArgs> OnGripHand;
 
         private Skeleton[] _skeletons; //the skeletons 
         private UserInfo[] _userInfos; //the information about the interactive users
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -51,64 +56,162 @@ namespace MusicGame
         }
         private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
-            this.sensorChooser = new KinectSensorChooser();
-            this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
-            this.sensorChooserUi.KinectSensorChooser = this.sensorChooser;
-            this.sensorChooser.Start();
-
-             _sensor = KinectSensor.KinectSensors.FirstOrDefault();
-            //if (_sensor == null)
-            //{
-            //    MessageBox.Show("No Kinect Sensor detected!");
-            //    Close();
-            //    return;
-            //}
-            if (_sensor != null)
-            {
-                _skeletons = new Skeleton[_sensor.SkeletonStream.FrameSkeletonArrayLength];
-                _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
+            InitializeKinect();
+           
+            KinectRegion.AddHandPointerGripHandler(kRegion, OnHandGrip);
+            KinectRegion.AddHandPointerGripReleaseHandler(kRegion, OnHandGripRelease);
 
 
-                _sensor.DepthStream.Range = DepthRange.Default;
-                _sensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
-
-                _sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
-                _sensor.SkeletonStream.EnableTrackingInNearRange = false;
-                _sensor.SkeletonStream.Enable();
-
-                _interactionStream = new InteractionStream(_sensor, new DummyInteractionClient());
-                _interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
-
-                _sensor.DepthFrameReady += SensorOnDepthFrameReady;
-                _sensor.SkeletonFrameReady += SensorOnSkeletonFrameReady;
-
-                _sensor.Start();
-            }
-
-            //drawTrack(len);
-
-            //Start the timer
-            time = new Timer(1000);
-            time.Elapsed += new ElapsedEventHandler(time_Tick);
-            time.Start();
-
+            playImg = new BitmapImage(new Uri("Assets/Icons/playButton.png", UriKind.Relative));
+            pauseImg = new BitmapImage(new Uri("Assets/Icons/pauseButton.png", UriKind.Relative));      
+           
             a=new Sound("Assets/Sounds/GuitarC.wav", "C-Chord", "guitar");
             b=new Sound("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
             c=new Sound("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
+            backtrack = new Sound("Assets/Sounds/drumloop_fast.wav", "BackingTrack", "drums");
             applause=new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
-            
+
             g[0] = new Sample(a);
             g[1] = new Sample(b);
             g[2] = new Sample(c);
             g[3] = new Sample(c);
 
-            guitarTrackSlots[0] = g[0];
-            guitarTrackSlots[2] = g[1];
-            guitarTrackSlots[4] = g[2];
-            guitarTrackSlots[6] = g[3];
+            gt= new Track(8,"guitar",4,5);
 
+            gt.addSample(0,g[0]);
+            gt.addSample(2,g[1]);
+            gt.addSample(4,g[2]);
+            gt.addSample(6,g[3]);
+
+            drawIcons(gt);
+            //Start the timer
+            time = new Timer(1000);
+            time.Elapsed += new ElapsedEventHandler(time_Tick);
+            time.Start();
+            
         }
-        
+        private void OnHandGrip(object sender, HandPointerEventArgs args)
+        {
+            //MessageBox.Show("Grip");
+            args.HandPointer.IsInGripInteraction = true;
+         
+        }
+        private void OnHandGripRelease(object sender, HandPointerEventArgs args)
+        {
+            //MessageBox.Show("Release");
+            args.HandPointer.IsInGripInteraction = false;
+            
+        }
+        private void InitializeKinect(){
+            this.sensorChooser = new KinectSensorChooser();
+            this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
+            this.sensorChooserUi.KinectSensorChooser = this.sensorChooser;
+            this.sensorChooser.Start();
+            
+            if (this.sensorChooser.Kinect != null)
+            {
+                _skeletons = new Skeleton[this.sensorChooser.Kinect.SkeletonStream.FrameSkeletonArrayLength];
+                _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
+                _interactionStream = new InteractionStream(this.sensorChooser.Kinect, new DummyInteractionClient());
+                _interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
+
+                this.sensorChooser.Kinect.DepthFrameReady += SensorOnDepthFrameReady;
+                this.sensorChooser.Kinect.SkeletonFrameReady += SensorOnSkeletonFrameReady;
+            }
+        }
+
+        private static RecognizerInfo GetKinectRecognizer()
+        {
+            foreach (RecognizerInfo recognizer in SpeechRecognitionEngine.InstalledRecognizers())
+            {
+                string value;
+                recognizer.AdditionalInfo.TryGetValue("Kinect", out value);
+       
+                if ("True".Equals(value, StringComparison.OrdinalIgnoreCase) && "en-US".Equals(recognizer.Culture.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    
+                    return recognizer;
+                }
+            }
+
+            return null;
+        }
+        private SpeechRecognitionEngine CreateSpeechRecogniser()
+        {
+            //set recognizer info
+            RecognizerInfo ri = GetKinectRecognizer();
+
+            //create instance of SRE
+            SpeechRecognitionEngine sre;
+            sre = new SpeechRecognitionEngine(ri.Id);
+            
+            //Now we need to add the words we want our program to recognise
+            var grammar = new Choices();
+            grammar.Add("play");
+            grammar.Add("stop");
+            grammar.Add("pause");
+
+            //set culture - language, country/region
+            var gb = new GrammarBuilder { Culture = ri.Culture };
+            gb.Append(grammar);
+
+            //set up the grammar builder
+            var g = new Grammar(gb);
+            sre.LoadGrammar(g);
+
+            //Set events for recognizing, hypothesising and rejecting speech
+            sre.SpeechRecognized += SreSpeechRecognized;
+            sre.SpeechHypothesized += SreSpeechHypothesized;
+            sre.SpeechRecognitionRejected += SreSpeechRecognitionRejected;
+            return sre;
+            
+        }
+        private void SreSpeechRecognitionRejected(object sender, SpeechRecognitionRejectedEventArgs e)
+        {
+            //throw new NotImplementedException();
+        }
+        private void SreSpeechHypothesized(object sender, SpeechHypothesizedEventArgs e)
+        {
+            //throw new NotImplementedException();
+        }
+        private void SreSpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        {
+            if (e.Result.Confidence < .4)
+            {
+               //RejectSpeech(e.Result);
+            }
+            switch (e.Result.Text.ToUpperInvariant())
+            {
+                case "PLAY":
+                    playTrack(gt);
+                    break;
+                case "STOP":
+                case "PAUSE":
+                    pauseTrack(gt);
+                    break;
+                default:
+                    break;
+            }
+        }     
+        private void StartAudioListening() 
+        {
+            //set sensor audio source to variable
+            var audioSource = this.sensorChooser.Kinect.AudioSource;
+            //Set the beam angle mode - the direction the audio beam is pointing
+            //we want it to be set to adaptive
+            audioSource.BeamAngleMode = BeamAngleMode.Adaptive;
+            //start the audiosource 
+            var kinectStream = audioSource.Start();
+            //configure incoming audio stream
+            speechEngine.SetInputToAudioStream(
+                kinectStream, new SpeechAudioFormatInfo(EncodingFormat.Pcm, 16000, 16, 1, 32000, 2, null));
+            //make sure the recognizer does not stop after completing     
+            speechEngine.RecognizeAsync(RecognizeMode.Multiple);
+            //reduce background and ambient noise for better accuracy
+            this.sensorChooser.Kinect.AudioSource.EchoCancellationMode = EchoCancellationMode.None;
+            this.sensorChooser.Kinect.AudioSource.AutomaticGainControlEnabled = false;
+        }
+
         private void SensorChooserOnKinectChanged(object sender, KinectChangedEventArgs args)
         {
          bool error = false;
@@ -118,8 +221,8 @@ namespace MusicGame
              {
                  args.OldSensor.DepthStream.Range = DepthRange.Default;
                  args.OldSensor.SkeletonStream.EnableTrackingInNearRange = false;
-                args.OldSensor.DepthStream.Disable();
-                args.OldSensor.SkeletonStream.Disable();
+                 args.OldSensor.DepthStream.Disable();
+                 args.OldSensor.SkeletonStream.Disable();
             }
             catch (InvalidOperationException)
             {
@@ -134,14 +237,18 @@ namespace MusicGame
         {
             try
             {
+
+                this.speechEngine = CreateSpeechRecogniser();
                 args.NewSensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
                 args.NewSensor.SkeletonStream.Enable();
-     
+                
                 try
                 {
                     //args.NewSensor.DepthStream.Range = DepthRange.Near;
                     //args.NewSensor.SkeletonStream.EnableTrackingInNearRange = true;
                     //args.NewSensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                    args.NewSensor.DepthStream.Range = DepthRange.Default;
+                    args.NewSensor.SkeletonStream.EnableTrackingInNearRange = false;
                 }
                 catch (InvalidOperationException)
                 {
@@ -158,7 +265,8 @@ namespace MusicGame
                 // E.g.: sensor might be abruptly unplugged.
             }
             if (!error)
-                kinectRegion.KinectSensor = args.NewSensor; 
+                kRegion.KinectSensor = args.NewSensor;
+                StartAudioListening();
         }
     }
         private void SensorOnSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs skeletonFrameReadyEventArgs)
@@ -171,7 +279,7 @@ namespace MusicGame
                 try
                 {
                     skeletonFrame.CopySkeletonDataTo(_skeletons);
-                    var accelerometerReading = _sensor.AccelerometerGetCurrentReading();
+                    var accelerometerReading = this.sensorChooser.Kinect.AccelerometerGetCurrentReading();
                     _interactionStream.ProcessSkeleton(_skeletons, accelerometerReading, skeletonFrame.Timestamp);
                 }
                 catch (InvalidOperationException)
@@ -210,7 +318,6 @@ namespace MusicGame
 
                 iaf.CopyInteractionDataTo(_userInfos);
             }
-
             StringBuilder dump = new StringBuilder();
 
             var hasUser = false;
@@ -240,7 +347,7 @@ namespace MusicGame
                         var lastHandEvent = lastHandEvents.ContainsKey(userID)
                                                 ? lastHandEvents[userID]
                                                 : InteractionHandEventType.None;
-
+                        
                         dump.AppendLine();
                         dump.AppendLine("    HandType: " + hand.HandType);
                         dump.AppendLine("    HandEventType: " + hand.HandEventType);
@@ -256,6 +363,7 @@ namespace MusicGame
                         dump.AppendLine("    RawX: " + hand.RawX.ToString("N3"));
                         dump.AppendLine("    RawY: " + hand.RawY.ToString("N3"));
                         dump.AppendLine("    RawZ: " + hand.RawZ.ToString("N3"));
+                        
                     }
                 }
 
@@ -266,10 +374,7 @@ namespace MusicGame
                 tb.Text = "No user detected.";
 
         }
-        private void ButtonOnClick(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("Well done!");
-        }
+       
         private void drawTrack(int len)
         {
             for (int i = 0; i < len; i++)
@@ -288,21 +393,47 @@ namespace MusicGame
             }
             guitarTrack.Margin = new System.Windows.Thickness(236,0,0,0);
         }
-        public void time_Tick(object sender, EventArgs e)
+        private void drawIcons(Track t)
         {
-            
+            for (int i = 0; i < t.trackLength; i++) {
+                if (t.samples[i] != null)
+                {
+                    Image icon = new Image
+                    {
+                        Source = new BitmapImage(new Uri(t.samples[i].getIcon(), UriKind.Relative)),
+                        Margin = new System.Windows.Thickness(101*i,0,0,0),
+                        Height = 100
+                    };
+                    guitarTrack.Children.Add(icon);
+                }
+            }
+        }
+        public void time_Tick(object sender, EventArgs e)
+        {     
             if (currTime == len - 1) {
                 currTime = 0;
             }
-            if (guitarTrackSlots[currTime] != null) {
-                guitarTrackSlots[currTime].play();
-            }
+            
+            gt.play(currTime);
             currTime++;
         }
         private void playButton_Click(object sender, RoutedEventArgs e)
         {
-            a.play();
+            if (gt.isPlaying)
+            {
+                pauseTrack(gt);
+            }
+            else {
+                playTrack(gt);
+            }
         }
-
+        private void playTrack(Track t) {
+            t.isPlaying = true;
+            playButtonImage.Source = pauseImg;
+        }
+        private void pauseTrack(Track t) {
+            t.isPlaying = false;
+            playButtonImage.Source = playImg;
+        }
     }
 }

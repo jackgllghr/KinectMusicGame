@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Media;
 using System.Resources;
-using System.Drawing;
+using System.Windows.Controls;
 using MusicGame.Properties;
 
 namespace MusicGame
@@ -16,8 +16,8 @@ namespace MusicGame
         Sound s;
         Boolean isMoving = false;
         Boolean isPlaying = true;
-        Image img;        
-
+        //private Image img;        
+        String img;
         //Constructers
         public Sample(Sound sound)
         {
@@ -58,10 +58,7 @@ namespace MusicGame
         //Sound methods
         public void play()
         {
-            if (isPlaying)
-            {
                 s.play();
-            }
         }
 
         //Setters
@@ -69,16 +66,20 @@ namespace MusicGame
         {
             if (s.getType().ToLower() == "guitar")
             {
-                img = Image.FromFile("Assets/Icons/guitar.png");
+                //img = Image.FromFile("Assets/Icons/guitar.png");
+                img = "Assets/Icons/guitar.png";
             }
             else if (s.getType().ToLower() == "bass")
             {
-                img = Image.FromFile("Assets/Icons/bass.png");
+                //img = Image.FromFile("Assets/Icons/bass.png");
             }
             else if (s.getType().ToLower() == "drums")
             {
-                img = Image.FromFile("Assets/Icons/drums.png");
+                //img = Image.FromFile("Assets/Icons/drums.png");
             }
+        }
+        public String getIcon() {
+            return img;
         }
         public void setXY(float newX, float newY)
         {
@@ -105,19 +106,20 @@ namespace MusicGame
             isMoving = state ;
         }
         //Drawing method
-        /*public void drawIcon()
+        public void drawIcon()
         {
             if (isMoving)
             {
-                imageMode(CENTER);
+                /*imageMode(CENTER);
                 image(icon, mouseX, mouseY, size, size);
-                imageMode(CORNER);
+                imageMode(CORNER);*/
             }
             else
             {
-                image(icon, x, y, size, size);
+                //image(icon, x, y, size, size);
+               
             }//print(s.name+": IconX="+x+" IconY="+y+"  Size="+size+"\n");
-        }*/
+        }
         public void move(float newX, float newY)
         {
             if (true)
