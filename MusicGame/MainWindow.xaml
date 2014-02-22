@@ -5,7 +5,7 @@
         Title="MainWindow" Width="1280" Height="720">
     <Grid>
         <k:KinectSensorChooserUI HorizontalAlignment="Center" VerticalAlignment="Top" Name="sensorChooserUi" />
-        <k:KinectUserViewer VerticalAlignment="Top" HorizontalAlignment="Center" k:KinectRegion.KinectRegion="{Binding ElementName=kinectRegion}" Height="100" />
+        <k:KinectUserViewer VerticalAlignment="Top" HorizontalAlignment="Center" k:KinectRegion.KinectRegion="{Binding ElementName=kRegion}" Height="100" />
        
         <k:KinectRegion Name="kRegion">
             <Canvas Name="tracks" Margin="0,400,0,0" Height="250" VerticalAlignment="Top">
