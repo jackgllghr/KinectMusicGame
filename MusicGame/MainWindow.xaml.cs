@@ -34,10 +34,12 @@ namespace MusicGame
         Sound a, b, c, applause, backtrack;
         int currTime = 0;
         int len = 8;
+        int heldSample;
         
         Sample[] g=new Sample[4];
-        Timer time;
-        Track gt;
+        Sample[] solutionSamples=new Sample[4];
+        Timer time, solutionTimer;
+        Track gt, solution;
 
         ImageSource playImg, pauseImg;
         
@@ -61,6 +63,11 @@ namespace MusicGame
             KinectRegion.AddHandPointerGripHandler(kRegion, OnHandGrip);
             KinectRegion.AddHandPointerGripReleaseHandler(kRegion, OnHandGripRelease);
 
+            Image guitarIcon = new Image
+            {
+                Source = new BitmapImage(new Uri("Assets/Icons/guitar.png", UriKind.Relative)),
+                Height = 100
+            };
 
             playImg = new BitmapImage(new Uri("Assets/Icons/playButton.png", UriKind.Relative));
             pauseImg = new BitmapImage(new Uri("Assets/Icons/pauseButton.png", UriKind.Relative));      
@@ -76,12 +83,27 @@ namespace MusicGame
             g[2] = new Sample(c);
             g[3] = new Sample(c);
 
-            gt= new Track(8,"guitar",4,5);
+
+            gt = new Track(8, "guitar", 4, 5);
 
             gt.addSample(0,g[0]);
             gt.addSample(2,g[1]);
             gt.addSample(4,g[2]);
             gt.addSample(6,g[3]);
+
+            solutionSamples[0] = new Sample(backtrack);
+            solutionSamples[1] = new Sample(applause);
+            solutionSamples[2] = new Sample(b);
+            solutionSamples[3] = new Sample(applause);
+
+
+            solution = new Track(8, "guitar", 1, 2);
+            solution.addSample(0, solutionSamples[0]);
+            solution.addSample(2, solutionSamples[1]);
+            solution.addSample(4, solutionSamples[2]);
+            solution.addSample(6, solutionSamples[3]);
+            solutionTimer = new Timer(1000);
+            solutionTimer.Elapsed += new ElapsedEventHandler(solutionTimer_Tick);   
 
             drawIcons(gt);
             //Start the timer
@@ -90,17 +112,42 @@ namespace MusicGame
             time.Start();
             
         }
+
+       
         private void OnHandGrip(object sender, HandPointerEventArgs args)
         {
-            //MessageBox.Show("Grip");
             args.HandPointer.IsInGripInteraction = true;
-         
+            int slot=checkHandForSample(args.HandPointer);
+
+            //Start moving the sample
+            if (gt.samples[slot] != null)
+            {
+                gt.samples[slot].setMoving(true);
+                //MessageBox.Show("Slot: " + slot.ToString());
+                //gt.samples[slot].getIcon().Margin = new Thickness(, 0, 0, 0);
+                heldSample = slot;
+            }
         }
         private void OnHandGripRelease(object sender, HandPointerEventArgs args)
         {
-            //MessageBox.Show("Release");
             args.HandPointer.IsInGripInteraction = false;
-            
+            int slot = checkHandForSample(args.HandPointer);
+
+            if (gt.samples[slot] == null)
+            {
+                gt.samples[heldSample].setMoving(false);
+
+                gt.addSample(slot, gt.samples[heldSample]);
+                gt.removeSample(heldSample);
+                gt.samples[slot].getIcon().Margin = new Thickness(slot*101, 0, 0, 0);
+            }
+        }
+        private int checkHandForSample(HandPointer hand)
+        {
+            //Get Slot
+            double x = hand.GetPosition(slot1).X;
+            int slot = (int)x / 101;
+            return slot;
         }
         private void InitializeKinect(){
             this.sensorChooser = new KinectSensorChooser();
@@ -119,7 +166,6 @@ namespace MusicGame
                 this.sensorChooser.Kinect.SkeletonFrameReady += SensorOnSkeletonFrameReady;
             }
         }
-
         private static RecognizerInfo GetKinectRecognizer()
         {
             foreach (RecognizerInfo recognizer in SpeechRecognitionEngine.InstalledRecognizers())
@@ -150,6 +196,7 @@ namespace MusicGame
             grammar.Add("play");
             grammar.Add("stop");
             grammar.Add("pause");
+            grammar.Add("solution");
 
             //set culture - language, country/region
             var gb = new GrammarBuilder { Culture = ri.Culture };
@@ -188,6 +235,9 @@ namespace MusicGame
                 case "STOP":
                 case "PAUSE":
                     pauseTrack(gt);
+                    break;
+                case "SOLUTION":
+                    playSolution();
                     break;
                 default:
                     break;
@@ -398,13 +448,15 @@ namespace MusicGame
             for (int i = 0; i < t.trackLength; i++) {
                 if (t.samples[i] != null)
                 {
-                    Image icon = new Image
-                    {
-                        Source = new BitmapImage(new Uri(t.samples[i].getIcon(), UriKind.Relative)),
-                        Margin = new System.Windows.Thickness(101*i,0,0,0),
-                        Height = 100
-                    };
-                    guitarTrack.Children.Add(icon);
+                    //Image icon = new Image
+                    //{
+                    //    Source = new BitmapImage(new Uri(t.samples[i].getIcon(), UriKind.Relative)),
+                    //    Margin = new System.Windows.Thickness(101*i,0,0,0),
+                    //    Height = 100
+                    //};
+                    Image img = t.samples[i].getIcon();
+                    img.Margin = new Thickness(101 * i, 0, 0, 0);
+                    guitarTrack.Children.Add(img);
                 }
             }
         }
@@ -419,7 +471,7 @@ namespace MusicGame
         }
         private void playButton_Click(object sender, RoutedEventArgs e)
         {
-            if (gt.isPlaying)
+            if (gt.getPlaying())
             {
                 pauseTrack(gt);
             }
@@ -428,12 +480,37 @@ namespace MusicGame
             }
         }
         private void playTrack(Track t) {
-            t.isPlaying = true;
+            t.setPlaying(true);
             playButtonImage.Source = pauseImg;
         }
         private void pauseTrack(Track t) {
-            t.isPlaying = false;
+            t.setPlaying(false);
             playButtonImage.Source = playImg;
+        }
+        private void solutionTimer_Tick(object sender, ElapsedEventArgs e)
+        {
+            if (currTime == len - 1)
+            {
+                stopSolution();
+            }
+            solution.play(currTime);
+            currTime++;
+        }
+        private void SolutionButton_Click(object sender, RoutedEventArgs e)
+        {
+            playSolution();
+        }
+        private void playSolution() {
+           // time.Stop();
+            currTime = 0;
+            pauseTrack(gt);
+            solutionTimer.Start();
+        }
+        private void stopSolution() {
+            playTrack(gt);
+            currTime = 0;
+            //time.Start();
+            solutionTimer.Stop();
         }
     }
 }

@@ -6,7 +6,7 @@ using System.Text;
 namespace MusicGame
 {
   class Track {
-      public Boolean isPlaying, winState;
+      private Boolean isPlaying, winState;
       public Sample[] samples;
       public int trackLength;
       private String type;
@@ -35,17 +35,17 @@ namespace MusicGame
       }
       //Add sample to track
       public void addSample(int i, Sample s) {
-        if (s.getType()==type) {
+        //if (s.getType()==type) {
           //Assigns the sound s
           samples[i]=s;
           // Add xy coordinates to the sample[i]
           s.setXY(x+(slotSize*i), y);
           s.setSize(slotSize);
           s.setMoving(false);
-        }
-        else {
+        //}
+        //else {
           //print("Wrong type of sound in "+type+" track");
-        }
+        //}
       }
  
       //remove sound from track
@@ -62,6 +62,10 @@ namespace MusicGame
       {
           isPlaying = !isPlaying;
       }
+      public void setPlaying(bool b) {
+          isPlaying = b;
+      }
+      public bool getPlaying() { return isPlaying; }
       /*void drawTrack(int time) {
         for (int i=0; i<len; i++) {
           if (i==time) {

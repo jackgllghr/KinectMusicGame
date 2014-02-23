@@ -6,13 +6,14 @@ using System.Media;
 using System.Resources;
 using System.Windows.Controls;
 using MusicGame.Properties;
+using System.Windows.Media.Imaging;
 
 namespace MusicGame
 {
     class Sample
     {
         public float x, y, size, centerX, centerY;
-        String icon;
+        Image icon;
         Sound s;
         Boolean isMoving = false;
         Boolean isPlaying = true;
@@ -48,7 +49,7 @@ namespace MusicGame
 
             x = newX;
             y = newY;
-            icon = i;
+            //icon = i;
             size = slotSize;
             
             centerX = x + (slotSize / 2);
@@ -66,20 +67,32 @@ namespace MusicGame
         {
             if (s.getType().ToLower() == "guitar")
             {
-                //img = Image.FromFile("Assets/Icons/guitar.png");
-                img = "Assets/Icons/guitar.png";
+                icon = new Image
+                {
+                    Source = new BitmapImage(new Uri("Assets/Icons/guitar.png", UriKind.Relative)),
+                    Height = 100
+                };
+                    
             }
             else if (s.getType().ToLower() == "bass")
             {
-                //img = Image.FromFile("Assets/Icons/bass.png");
+                icon = new Image
+                {
+                    Source = new BitmapImage(new Uri("Assets/Icons/bass.png", UriKind.Relative)),
+                    Height = 100
+                };
             }
             else if (s.getType().ToLower() == "drums")
             {
-                //img = Image.FromFile("Assets/Icons/drums.png");
+                icon = new Image
+                {
+                    Source = new BitmapImage(new Uri("Assets/Icons/drums.png", UriKind.Relative)),
+                    Height = 100
+                };
             }
         }
-        public String getIcon() {
-            return img;
+        public Image getIcon() {
+            return icon;
         }
         public void setXY(float newX, float newY)
         {

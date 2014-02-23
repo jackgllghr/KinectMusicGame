@@ -18,12 +18,12 @@
                     <Rectangle Name="slot5" Width="100" Height="100" Fill="PaleGreen" Margin="404,0,0,0"></Rectangle>
                     <Rectangle Name="slot6" Width="100" Height="100" Fill="PaleGreen" Margin="505,0,0,0"></Rectangle>
                     <Rectangle Name="slot7" Width="100" Height="100" Fill="PaleGreen" Margin="606,0,0,0"></Rectangle>
-                    <Rectangle Name="slot8" Width="100" Height="100" Fill="PaleGreen" Margin="707,0,0,0"></Rectangle>
-                 </Canvas>
+                    <Rectangle Name="slot8" Width="100" Height="100" Fill="PaleGreen" Margin="707,0,0,0"></Rectangle> 
+                </Canvas>
                 <k:KinectCircleButton Name="playButton" Click="playButton_Click" Height="100" Canvas.Left="87">
                     <Image Name="playButtonImage" Source="Assets\Icons\pauseButton.png"/>
                 </k:KinectCircleButton>
-                <k:KinectTileButton Background="RoyalBlue" TextElement.Foreground="AntiqueWhite" Name="SolutionButton" Height="76" Canvas.Top="119" Width="380" Canvas.Left="450">Play Solution</k:KinectTileButton>
+                <k:KinectTileButton Background="RoyalBlue" Click="SolutionButton_Click" TextElement.Foreground="AntiqueWhite" Name="SolutionButton" Height="76" Canvas.Top="119" Width="380" Canvas.Left="450">Play Solution</k:KinectTileButton>
             </Canvas>
 
         </k:KinectRegion>
