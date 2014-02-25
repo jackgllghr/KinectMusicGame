@@ -62,7 +62,7 @@ namespace MusicGame
            
             KinectRegion.AddHandPointerGripHandler(kRegion, OnHandGrip);
             KinectRegion.AddHandPointerGripReleaseHandler(kRegion, OnHandGripRelease);
-
+           
             Image guitarIcon = new Image
             {
                 Source = new BitmapImage(new Uri("Assets/Icons/guitar.png", UriKind.Relative)),
@@ -117,7 +117,7 @@ namespace MusicGame
         private void OnHandGrip(object sender, HandPointerEventArgs args)
         {
             args.HandPointer.IsInGripInteraction = true;
-            int slot=checkHandForSample(args.HandPointer);
+            int slot=checkHandForSlot(args.HandPointer);
 
             //Start moving the sample
             if (gt.samples[slot] != null)
@@ -127,29 +127,32 @@ namespace MusicGame
                 //gt.samples[slot].getIcon().Margin = new Thickness(, 0, 0, 0);
                 heldSample = slot;
             }
+            
         }
         private void OnHandGripRelease(object sender, HandPointerEventArgs args)
         {
             args.HandPointer.IsInGripInteraction = false;
-            int slot = checkHandForSample(args.HandPointer);
+            int slot = checkHandForSlot(args.HandPointer);
 
-            if (gt.samples[slot] == null)
+            if (gt.samples[slot] == null && gt.samples[heldSample] != null)
             {
                 gt.samples[heldSample].setMoving(false);
 
                 gt.addSample(slot, gt.samples[heldSample]);
                 gt.removeSample(heldSample);
-                gt.samples[slot].getIcon().Margin = new Thickness(slot*101, 0, 0, 0);
+                gt.samples[slot].getIcon().Margin = new Thickness(slot * 101, 0, 0, 0);
             }
+            
         }
-        private int checkHandForSample(HandPointer hand)
+        private int checkHandForSlot(HandPointer hand)
         {
             //Get Slot
             double x = hand.GetPosition(slot1).X;
             int slot = (int)x / 101;
             return slot;
         }
-        private void InitializeKinect(){
+        private void InitializeKinect()
+        {
             this.sensorChooser = new KinectSensorChooser();
             this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
             this.sensorChooserUi.KinectSensorChooser = this.sensorChooser;
