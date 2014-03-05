@@ -166,10 +166,11 @@ namespace MusicGame
                     var accelerometerReading = _sensor.AccelerometerGetCurrentReading();
                     _interactionStream.ProcessSkeleton(_skeletons, accelerometerReading, skeletonFrame.Timestamp);
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException e)
                 {
                     // SkeletonFrame functions may throw when the sensor gets
                     // into a bad state.  Ignore the frame in that case.
+                    MessageBox.Show(e.ToString());
                 }
             }
         }

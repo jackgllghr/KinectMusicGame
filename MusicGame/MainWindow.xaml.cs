@@ -16,11 +16,13 @@ using System.Timers;
 using Microsoft.Speech.AudioFormat;
 using Microsoft.Speech.Recognition;
 
-
-using Microsoft.Kinect.Toolkit;
 using Microsoft.Kinect;
+using Microsoft.Kinect.Toolkit;
 using Microsoft.Kinect.Toolkit.Controls;
 using Microsoft.Kinect.Toolkit.Interaction;
+using Microsoft.Kinect.Toolkit.BackgroundRemoval;
+
+using System.Diagnostics;
 
 namespace MusicGame
 {
@@ -42,10 +44,14 @@ namespace MusicGame
         Track gt, solution;
 
         ImageSource playImg, pauseImg;
+
+        Rectangle[] slots=new Rectangle[8];
         
         private KinectSensorChooser sensorChooser;
         private InteractionStream _interactionStream;
-        //private EventHandler<HandPointerEventArgs> OnGripHand;
+        private BackgroundRemovedColorStream backgroundRemovedColorStream;
+        private WriteableBitmap foregroundBitmap;
+        private int currentlyTrackedSkeletonId;
 
         private Skeleton[] _skeletons; //the skeletons 
         private UserInfo[] _userInfos; //the information about the interactive users
@@ -62,7 +68,16 @@ namespace MusicGame
            
             KinectRegion.AddHandPointerGripHandler(kRegion, OnHandGrip);
             KinectRegion.AddHandPointerGripReleaseHandler(kRegion, OnHandGripRelease);
-           
+
+            //slots[0] = slot1;
+            //slots[1] = slot2;
+            //slots[2] = slot3;
+            //slots[3] = slot4;
+            //slots[4] = slot5;
+            //slots[5] = slot6;
+            //slots[6] = slot7;
+            //slots[7] = slot8;
+
             Image guitarIcon = new Image
             {
                 Source = new BitmapImage(new Uri("Assets/Icons/guitar.png", UriKind.Relative)),
@@ -76,13 +91,11 @@ namespace MusicGame
             b=new Sound("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
             c=new Sound("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
             backtrack = new Sound("Assets/Sounds/drumloop_fast.wav", "BackingTrack", "drums");
-            applause=new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
-
+            
             g[0] = new Sample(a);
             g[1] = new Sample(b);
             g[2] = new Sample(c);
             g[3] = new Sample(c);
-
 
             gt = new Track(8, "guitar", 4, 5);
 
@@ -91,10 +104,10 @@ namespace MusicGame
             gt.addSample(4,g[2]);
             gt.addSample(6,g[3]);
 
-            solutionSamples[0] = new Sample(backtrack);
-            solutionSamples[1] = new Sample(applause);
-            solutionSamples[2] = new Sample(b);
-            solutionSamples[3] = new Sample(applause);
+            solutionSamples[0] = g[0];
+            solutionSamples[1] = g[2];
+            solutionSamples[2] = g[1];
+            solutionSamples[3] = g[3];
 
 
             solution = new Track(8, "guitar", 1, 2);
@@ -103,9 +116,12 @@ namespace MusicGame
             solution.addSample(4, solutionSamples[2]);
             solution.addSample(6, solutionSamples[3]);
             solutionTimer = new Timer(1000);
-            solutionTimer.Elapsed += new ElapsedEventHandler(solutionTimer_Tick);   
-
+            solutionTimer.Elapsed += new ElapsedEventHandler(solutionTimer_Tick);
+            drawTrack(8);
             drawIcons(gt);
+
+            
+            backtrack.playLooping();
             //Start the timer
             time = new Timer(1000);
             time.Elapsed += new ElapsedEventHandler(time_Tick);
@@ -147,28 +163,19 @@ namespace MusicGame
         private int checkHandForSlot(HandPointer hand)
         {
             //Get Slot
-            double x = hand.GetPosition(slot1).X;
+            double x = hand.GetPosition(guitarTrack).X;
             int slot = (int)x / 101;
             return slot;
         }
+        
         private void InitializeKinect()
         {
             this.sensorChooser = new KinectSensorChooser();
             this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
             this.sensorChooserUi.KinectSensorChooser = this.sensorChooser;
             this.sensorChooser.Start();
-            
-            if (this.sensorChooser.Kinect != null)
-            {
-                _skeletons = new Skeleton[this.sensorChooser.Kinect.SkeletonStream.FrameSkeletonArrayLength];
-                _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
-                _interactionStream = new InteractionStream(this.sensorChooser.Kinect, new DummyInteractionClient());
-                _interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
-
-                this.sensorChooser.Kinect.DepthFrameReady += SensorOnDepthFrameReady;
-                this.sensorChooser.Kinect.SkeletonFrameReady += SensorOnSkeletonFrameReady;
-            }
         }
+
         private static RecognizerInfo GetKinectRecognizer()
         {
             foreach (RecognizerInfo recognizer in SpeechRecognitionEngine.InstalledRecognizers())
@@ -276,6 +283,16 @@ namespace MusicGame
                  args.OldSensor.SkeletonStream.EnableTrackingInNearRange = false;
                  args.OldSensor.DepthStream.Disable();
                  args.OldSensor.SkeletonStream.Disable();
+                 args.NewSensor.ColorStream.Disable();
+
+                 // Create the background removal stream to process the data and remove background, and initialize it.
+                 if (null != this.backgroundRemovedColorStream)
+                 {
+                     
+                     this.backgroundRemovedColorStream.BackgroundRemovedFrameReady -= this.BackgroundRemovedFrameReadyHandler;
+                     this.backgroundRemovedColorStream.Dispose();
+                     this.backgroundRemovedColorStream = null;
+                 }
             }
             catch (InvalidOperationException)
             {
@@ -292,9 +309,34 @@ namespace MusicGame
             {
 
                 this.speechEngine = CreateSpeechRecogniser();
-                args.NewSensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
+                args.NewSensor.DepthStream.Enable();
                 args.NewSensor.SkeletonStream.Enable();
+                args.NewSensor.ColorStream.Enable();
                 
+                backgroundRemovedColorStream = new BackgroundRemovedColorStream(args.NewSensor);
+                backgroundRemovedColorStream.Enable(args.NewSensor.ColorStream.Format, args.NewSensor.DepthStream.Format);
+                
+                // Allocate space to put the depth, color, and skeleton data we'll receive
+                if (null == this._skeletons)
+                {
+                    _skeletons = new Skeleton[args.NewSensor.SkeletonStream.FrameSkeletonArrayLength];
+                    _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
+                    _interactionStream = new InteractionStream(args.NewSensor, new DummyInteractionClient());
+                    _interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
+
+                    //args.NewSensor.DepthFrameReady += SensorOnDepthFrameReady;
+                    //args.NewSensor.SkeletonFrameReady += SensorOnSkeletonFrameReady;
+                    //args.NewSensor.ColorFrameReady += SensorOnColorImageFrameReady;
+                    args.NewSensor.AllFramesReady += SensorAllFramesReady;
+                    backgroundRemovedColorStream.BackgroundRemovedFrameReady += BackgroundRemovedFrameReadyHandler;
+                }
+
+                // Add an event handler to be called when the background removed color frame is ready, so that we can
+                // composite the image and output to the app
+                
+                // Add an event handler to be called whenever there is new depth frame data
+                //args.NewSensor.AllFramesReady += this.SensorAllFramesReady;
+
                 try
                 {
                     //args.NewSensor.DepthStream.Range = DepthRange.Near;
@@ -322,44 +364,66 @@ namespace MusicGame
                 StartAudioListening();
         }
     }
-        private void SensorOnSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs skeletonFrameReadyEventArgs)
-        {
-            using (SkeletonFrame skeletonFrame = skeletonFrameReadyEventArgs.OpenSkeletonFrame())
-            {
-                if (skeletonFrame == null)
-                    return;
+    //    private void SensorOnSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs skeletonFrameReadyEventArgs)
+    //    {
+    //        using (SkeletonFrame skeletonFrame = skeletonFrameReadyEventArgs.OpenSkeletonFrame())
+    //        {
+    //            if (skeletonFrame == null)
+    //                return;
 
-                try
-                {
-                    skeletonFrame.CopySkeletonDataTo(_skeletons);
-                    var accelerometerReading = this.sensorChooser.Kinect.AccelerometerGetCurrentReading();
-                    _interactionStream.ProcessSkeleton(_skeletons, accelerometerReading, skeletonFrame.Timestamp);
-                }
-                catch (InvalidOperationException)
-                {
-                    // SkeletonFrame functions may throw when the sensor gets
-                    // into a bad state.  Ignore the frame in that case.
-                }
-            }
-        }
-        private void SensorOnDepthFrameReady(object sender, DepthImageFrameReadyEventArgs depthImageFrameReadyEventArgs)
-        {
-            using (DepthImageFrame depthFrame = depthImageFrameReadyEventArgs.OpenDepthImageFrame())
-            {
-                if (depthFrame == null)
-                    return;
+    //            try
+    //            {
+    //                skeletonFrame.CopySkeletonDataTo(_skeletons);
+    //                var accelerometerReading = this.sensorChooser.Kinect.AccelerometerGetCurrentReading();
+    //                _interactionStream.ProcessSkeleton(_skeletons, accelerometerReading, skeletonFrame.Timestamp);
+    //                this.ChooseSkeleton();
+    //            }
+    //            catch (InvalidOperationException e)
+    //            {
+    //                // SkeletonFrame functions may throw when the sensor gets
+    //                // into a bad state.  Ignore the frame in that case.
+    //                Debug.WriteLine("Skeleton: "+e.ToString());
+    //            }
+    //        }
+    //    }
+    //    private void SensorOnDepthFrameReady(object sender, DepthImageFrameReadyEventArgs depthImageFrameReadyEventArgs)
+    //    {
+    //        using (DepthImageFrame depthFrame = depthImageFrameReadyEventArgs.OpenDepthImageFrame())
+    //        {
+    //            if (depthFrame == null)
+    //                return;
 
-                try
-                {
-                    _interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
-                }
-                catch (InvalidOperationException)
-                {
-                    // DepthFrame functions may throw when the sensor gets
-                    // into a bad state.  Ignore the frame in that case.
-                }
-            }
-        }
+    //            try
+    //            {
+    //                _interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
+    //                backgroundRemovedColorStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
+                    
+    //            }
+    //            catch (InvalidOperationException e)
+    //            {
+    //                // DepthFrame functions may throw when the sensor gets
+    //                // into a bad state.  Ignore the frame in that case.
+    //                //MessageBox.Show(e.ToString());
+    //                Debug.WriteLine("Depth: "+e.ToString());
+    //            }
+    //        }
+    //    }
+    //    private void SensorOnColorImageFrameReady(object sender, ColorImageFrameReadyEventArgs colorImageFrameReadyEventArgs){
+    //        using(ColorImageFrame colorFrame=colorImageFrameReadyEventArgs.OpenColorImageFrame())
+    //        {
+    //            if (colorFrame == null)
+    //                return;
+    //            try {
+    //                this.backgroundRemovedColorStream.ProcessColor(colorFrame.GetRawPixelData(), colorFrame.Timestamp);
+                   
+    //            }
+    //            catch(InvalidOperationException e)
+    //            {
+    //                Debug.WriteLine("Color: "+e.ToString());
+    //            }
+    //        }
+    //}
+
         private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
         private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
         private void InteractionStreamOnInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args)
@@ -427,12 +491,119 @@ namespace MusicGame
                 tb.Text = "No user detected.";
 
         }
-       
+
+        private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs args)
+        {
+            // in the middle of shutting down, or lingering events from previous sensor, do nothing here.
+            if (null == this.sensorChooser || null == this.sensorChooser.Kinect || this.sensorChooser.Kinect != sender)
+            {
+                return;
+            }
+
+            try
+            {
+                using (var depthFrame = args.OpenDepthImageFrame())
+                {
+                    if (null != depthFrame)
+                    {
+                        _interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
+                        backgroundRemovedColorStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
+                   
+                    }
+                }
+
+                using (var colorFrame = args.OpenColorImageFrame())
+                {
+                    if (null != colorFrame)
+                    {
+                        this.backgroundRemovedColorStream.ProcessColor(colorFrame.GetRawPixelData(), colorFrame.Timestamp);
+                    }
+                }
+
+                using (var skeletonFrame = args.OpenSkeletonFrame())
+                {
+                    if (null != skeletonFrame)
+                    {
+                        skeletonFrame.CopySkeletonDataTo(_skeletons);
+                        var accelerometerReading = this.sensorChooser.Kinect.AccelerometerGetCurrentReading();
+                        _interactionStream.ProcessSkeleton(_skeletons, accelerometerReading, skeletonFrame.Timestamp);
+                        backgroundRemovedColorStream.ProcessSkeleton(_skeletons, skeletonFrame.Timestamp);
+                    }
+                }
+                this.ChooseSkeleton();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }
+        }
+        private void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs args)
+        {
+            using (var backgroundRemovedFrame = args.OpenBackgroundRemovedColorFrame())
+            {
+                if (backgroundRemovedFrame != null)
+                {
+                    if (null == this.foregroundBitmap || this.foregroundBitmap.PixelWidth != backgroundRemovedFrame.Width
+                        || this.foregroundBitmap.PixelHeight != backgroundRemovedFrame.Height)
+                    {
+                        this.foregroundBitmap = new WriteableBitmap(backgroundRemovedFrame.Width, backgroundRemovedFrame.Height, 96.0, 96.0, PixelFormats.Bgra32, null);
+
+                        // Set the image we display to point to the bitmap where we'll put the image data
+                        this.MaskedColor.Source = this.foregroundBitmap;
+                    }
+
+                    // Write the pixel data into our bitmap
+                    this.foregroundBitmap.WritePixels(
+                        new Int32Rect(0, 0, this.foregroundBitmap.PixelWidth, this.foregroundBitmap.PixelHeight),
+                        backgroundRemovedFrame.GetRawPixelData(),
+                        this.foregroundBitmap.PixelWidth * sizeof(int),
+                        0);
+                }
+            }
+        }
+        private void ChooseSkeleton()
+        {
+            var isTrackedSkeltonVisible = false;
+            var nearestDistance = float.MaxValue;
+            var nearestSkeleton = 0;
+
+            foreach (var skel in this._skeletons)
+            {
+                if (null == skel)
+                {
+                    continue;
+                }
+
+                if (skel.TrackingState != SkeletonTrackingState.Tracked)
+                {
+                    continue;
+                }
+
+                if (skel.TrackingId == this.currentlyTrackedSkeletonId)
+                {
+                    isTrackedSkeltonVisible = true;
+                    break;
+                }
+
+                if (skel.Position.Z < nearestDistance)
+                {
+                    nearestDistance = skel.Position.Z;
+                    nearestSkeleton = skel.TrackingId;
+                }
+            }
+
+            if (!isTrackedSkeltonVisible && nearestSkeleton != 0)
+            {
+                this.backgroundRemovedColorStream.SetTrackedPlayer(nearestSkeleton);
+                this.currentlyTrackedSkeletonId = nearestSkeleton;
+            }
+        }
+
         private void drawTrack(int len)
         {
             for (int i = 0; i < len; i++)
             {
-                Rectangle r = new Rectangle
+                slots[i] = new Rectangle
                 {
                     Width = 100,
                     Height = 100,
@@ -441,10 +612,10 @@ namespace MusicGame
                     Name="slot"+(i+1)
                 };
                
-                guitarTrack.Children.Add(r);
+                guitarTrack.Children.Add(slots[i]);
 
             }
-            guitarTrack.Margin = new System.Windows.Thickness(236,0,0,0);
+            //guitarTrack.Margin = new System.Windows.Thickness(236,0,0,0);
         }
         private void drawIcons(Track t)
         {
@@ -468,9 +639,27 @@ namespace MusicGame
             if (currTime == len - 1) {
                 currTime = 0;
             }
-            
+            checkIfWon();
+
+            //slots[0].Fill = Brushes.Violet;
             gt.play(currTime);
             currTime++;
+        }
+
+        private void checkIfWon()
+        {
+            if (compareTracks(gt, solution)) {
+                Win();
+                time.Stop();
+            }
+        }
+        private bool compareTracks(Track t1, Track t2){
+            for (int i = 0; i < len; i++)
+            {
+                if (t1.samples[i] != t2.samples[i])
+                    return false;
+            }
+            return true;
         }
         private void playButton_Click(object sender, RoutedEventArgs e)
         {
@@ -482,13 +671,31 @@ namespace MusicGame
                 playTrack(gt);
             }
         }
-        private void playTrack(Track t) {
-            t.setPlaying(true);
-            playButtonImage.Source = pauseImg;
+        private void playTrack(Track t){
+            try
+            {
+                time.Start();
+                t.setPlaying(true);
+                playButtonImage.Source = pauseImg;
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+                throw;
+            }
         }
         private void pauseTrack(Track t) {
-            t.setPlaying(false);
-            playButtonImage.Source = playImg;
+            try
+            {
+                time.Stop();
+                t.setPlaying(false);
+                playButtonImage.Source = playImg;
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+                throw;
+            }
         }
         private void solutionTimer_Tick(object sender, ElapsedEventArgs e)
         {
@@ -496,15 +703,17 @@ namespace MusicGame
             {
                 stopSolution();
             }
-            solution.play(currTime);
-            currTime++;
+            else
+            {
+                solution.play(currTime);
+                currTime++;
+            }
         }
         private void SolutionButton_Click(object sender, RoutedEventArgs e)
         {
             playSolution();
         }
         private void playSolution() {
-           // time.Stop();
             currTime = 0;
             pauseTrack(gt);
             solutionTimer.Start();
@@ -512,8 +721,17 @@ namespace MusicGame
         private void stopSolution() {
             playTrack(gt);
             currTime = 0;
-            //time.Start();
             solutionTimer.Stop();
+        }
+        private void Win() {
+            
+            backtrack.stop();
+            //pauseTrack(gt);
+            applause = new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
+            applause.playLooping();
+            time.Stop();
+            MessageBox.Show("Congrats, you won!");
+
         }
     }
 }
