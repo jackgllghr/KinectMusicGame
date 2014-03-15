@@ -46,7 +46,6 @@ namespace MusicGame
         Timer time, solutionTimer, animationTimer;
         Track gt, solution;
 
-        Image concert;
         ImageSource playImg, pauseImg;
         ImageSource[] animation;
         int animationCurrentFrame;
@@ -74,10 +73,10 @@ namespace MusicGame
         {
             InitializeKinect();
 
+            
             animationCurrentFrame = 0;
             animation = GetAnimationFrames();
-            
-            animationTimer = new Timer(100);
+            animationTimer = new Timer(33);
             animationTimer.Elapsed += animationTimer_Tick;
             animationTimer.Start();
 
@@ -128,16 +127,23 @@ namespace MusicGame
 
         private void animationTimer_Tick(object sender, ElapsedEventArgs e)
         {
-            if (animationCurrentFrame > 97)
+            try
             {
-                animationCurrentFrame = 0;
+                if (animationCurrentFrame == 98)
+                {
+                    animationCurrentFrame = 0;
+                }
+                Dispatcher.Invoke((Action)delegate(){
+                        Concert.Source = animation[animationCurrentFrame];
+                });
+                
+                animationCurrentFrame++;
             }
-            Dispatcher.Invoke((Action)delegate()
+            catch (Exception ex)
             {
-                Concert.Source = animation[animationCurrentFrame];
-            });
-            
-            animationCurrentFrame++;
+                MessageBox.Show(ex.ToString());
+                throw;
+            }
         }
         
 
@@ -826,14 +832,14 @@ namespace MusicGame
                 ImageSource[] loop = new ImageSource[98];
                 for (int i = 1; i < 10; i++)
                 {
-                    loop[i] = new BitmapImage(new Uri("Assets/Animation/Rock Concert Crowd HD loop 0" + i, UriKind.Relative));
-
+                    loop[i] = new BitmapImage(new Uri("Assets/Animation/Rock Concert Crowd HD loop 0" + i+".jpg", UriKind.Relative));
                 }
                 for (int i = 10; i < 98; i++)
                 {
-                    loop[i] = new BitmapImage(new Uri("Assets/Animation/Rock Concert Crowd HD loop " + i, UriKind.Relative));
+                    loop[i] = new BitmapImage(new Uri("Assets/Animation/Rock Concert Crowd HD loop " + i+".jpg", UriKind.Relative));
                 }
                 return loop;
+                
             }
             catch (Exception e)
             {

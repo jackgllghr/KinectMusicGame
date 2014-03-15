@@ -11,7 +11,7 @@
         <k:KinectSensorChooserUI HorizontalAlignment="Center" VerticalAlignment="Top" Name="sensorChooserUi" />
         <!--<k:KinectUserViewer VerticalAlignment="Top" HorizontalAlignment="Center" k:KinectRegion.KinectRegion="{Binding ElementName=kRegion}" Height="100" />-->
         <Viewbox Margin="10,112,922,367" SnapsToDevicePixels="False">
-            <TextBlock Name="instructions" TextWrapping="Wrap" FontSize="70" FontFamily="Helvetica" Text="Drag and Drop the musical samples to match the solution track!" Height="426" Width="580"  />
+            <TextBlock Background="AliceBlue" Name="instructions" TextWrapping="Wrap" FontSize="70" FontFamily="Helvetica" Text="Drag and Drop the musical samples to match the solution track!" Height="426" Width="580"  />
         </Viewbox>
         <k:KinectRegion Name="kRegion" >
             <Canvas Name="tracks" Margin="0,400,0,0" Height="250" VerticalAlignment="Top">
@@ -26,7 +26,7 @@
 
         </k:KinectRegion>
         <Viewbox Margin="922,81,10,356" SnapsToDevicePixels="False">
-            <TextBlock Name="tb" FontFamily="Helvetica" Text="Initializing.."  />
+            <TextBlock Name="tb" Background="Azure" FontFamily="Helvetica" Text="Initializing.."  />
         </Viewbox>
 
     </Grid>
