@@ -2,27 +2,21 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:k="http://schemas.microsoft.com/kinect/2013"
-        Title="MainWindow" Width="1280" Height="720">
+        Title="MainWindow" MaxWidth="1280" MaxHeight="720" Width="1280" Height="720">
     <Grid>
         <Grid Grid.Row="1">
-            <!--<Image Name ="Backdrop" Source="Assets\backdrop.jpg"/>-->
-            <Image Name ="MaskedColor"/>
+            <Image Name ="Concert" Stretch="Fill" Source="Assets\Animation\Rock Concert Crowd HD Loop 01.jpg"/>
+            <Image Name ="MaskedColor" />
         </Grid>
         <k:KinectSensorChooserUI HorizontalAlignment="Center" VerticalAlignment="Top" Name="sensorChooserUi" />
         <!--<k:KinectUserViewer VerticalAlignment="Top" HorizontalAlignment="Center" k:KinectRegion.KinectRegion="{Binding ElementName=kRegion}" Height="100" />-->
-        
-        <k:KinectRegion Name="kRegion">
+        <Viewbox Margin="10,112,922,367" SnapsToDevicePixels="False">
+            <TextBlock Name="instructions" TextWrapping="Wrap" FontSize="70" FontFamily="Helvetica" Text="Drag and Drop the musical samples to match the solution track!" Height="426" Width="580"  />
+        </Viewbox>
+        <k:KinectRegion Name="kRegion" >
             <Canvas Name="tracks" Margin="0,400,0,0" Height="250" VerticalAlignment="Top">
                 
                 <Canvas Name="guitarTrack" Height="100" Width="808" Canvas.Left="236">
-                    <!--<Rectangle Name="slot1" Width="100" Height="100" Fill="PaleGreen" Margin="0,0,0,0"></Rectangle>
-                    <Rectangle Name="slot2" Width="100" Height="100" Fill="PaleGreen" Margin="101,0,0,0"></Rectangle>
-                    <Rectangle Name="slot3" Width="100" Height="100" Fill="PaleGreen" Margin="202,0,0,0"></Rectangle>
-                    <Rectangle Name="slot4" Width="100" Height="100" Fill="PaleGreen" Margin="303,0,0,0"></Rectangle>
-                    <Rectangle Name="slot5" Width="100" Height="100" Fill="PaleGreen" Margin="404,0,0,0"></Rectangle>
-                    <Rectangle Name="slot6" Width="100" Height="100" Fill="PaleGreen" Margin="505,0,0,0"></Rectangle>
-                    <Rectangle Name="slot7" Width="100" Height="100" Fill="PaleGreen" Margin="606,0,0,0"></Rectangle>
-                    <Rectangle Name="slot8" Width="100" Height="100" Fill="PaleGreen" Margin="707,0,0,0"></Rectangle>--> 
                 </Canvas>
                 <k:KinectCircleButton Name="playButton" Click="playButton_Click" Height="100" Canvas.Left="87">
                     <Image Name="playButtonImage" Source="Assets\Icons\pauseButton.png"/>
@@ -31,7 +25,7 @@
             </Canvas>
 
         </k:KinectRegion>
-        <Viewbox Margin="86,116,105,321" SnapsToDevicePixels="False">
+        <Viewbox Margin="922,81,10,356" SnapsToDevicePixels="False">
             <TextBlock Name="tb" FontFamily="Helvetica" Text="Initializing.."  />
         </Viewbox>
 

@@ -7,65 +7,56 @@ using System.Resources;
 using System.Windows.Controls;
 using MusicGame.Properties;
 using System.Windows.Media.Imaging;
+using WMPLib;
 
 namespace MusicGame
 {
+    /// <summary>
+    /// The Sample class controls the musical samples that the user interacts with. 
+    /// Each consists of a sound, name, type and image
+    /// </summary>
     class Sample
     {
-        public float x, y, size, centerX, centerY;
-        Image icon;
-        Sound s;
-        Boolean isMoving = false;
-        Boolean isPlaying = true;
-        //private Image img;        
-        String img;
-        //Constructers
-        public Sample(Sound sound)
-        {
-            s = sound;
-            x = 0;
-            y = 0;
+        public Image icon { get; set; }
+        public Boolean isMoving { get; set; }
+        public String name { get; set; }
+        public String type { get; set; }
+        WindowsMediaPlayer player;
 
-            size = 1;
+        /// <summary>
+        /// The constructor takes 3 args, the path of the WAV audio file, the name of the sample, and what type it is(i.e. guitar/drums/bass)
+        /// </summary>
+        /// <param name="soundFile">The path to the audio file(Must be ina Windows Media Player supported format)</param>
+        /// <param name="soundName">The name of the sample</param>
+        /// <param name="soundType">What instrument type it is</param>
+        public Sample(
+            String soundFile,
+            String soundName,
+            String soundType)
+        {
+            player = new WindowsMediaPlayer();
+            player.URL = soundFile;
+
+            name = soundName;
+            type = soundType;
+            isMoving = false;
             setIcon();
         }
-        Sample(Sound sound, float newX, float newY, float slotSize)
-        {
-            s = sound;
-            //setIcon();
-
-            x = newX;
-            y = newY;
-
-            size = slotSize;
-
-            centerX = x + (slotSize / 2);
-            centerY = y + (slotSize / 2);
-        }
-        Sample(Sound sound, float newX, float newY, float slotSize, String i)
-        {
-            s = sound;
-            //setIcon();
-
-            x = newX;
-            y = newY;
-            //icon = i;
-            size = slotSize;
-            
-            centerX = x + (slotSize / 2);
-            centerY = y + (slotSize / 2);
-        }
-
-        //Sound methods
+        /// <summary>
+        /// This method plays the audio file in the sample
+        /// </summary>
         public void play()
         {
-                s.play();
+                player.controls.play();
         }
 
-        //Setters
+        /// <summary>
+        /// This sets the image that the sample will display depending on it's type
+        /// If the type name is "guitar", the image will be a guitar icon, etc
+        /// </summary>
         void setIcon()
         {
-            if (s.getType().ToLower() == "guitar")
+            if (type.ToLower() == "guitar")
             {
                 icon = new Image
                 {
@@ -74,7 +65,7 @@ namespace MusicGame
                 };
                     
             }
-            else if (s.getType().ToLower() == "bass")
+            else if (type.ToLower() == "bass")
             {
                 icon = new Image
                 {
@@ -82,7 +73,7 @@ namespace MusicGame
                     Height = 100
                 };
             }
-            else if (s.getType().ToLower() == "drums")
+            else if (type.ToLower() == "drums")
             {
                 icon = new Image
                 {
@@ -91,56 +82,5 @@ namespace MusicGame
                 };
             }
         }
-        public Image getIcon() {
-            return icon;
-        }
-        public void setXY(float newX, float newY)
-        {
-            x = newX;
-            y = newY;
-        }
-        public void setPlaying()
-        {
-            isPlaying = !isPlaying;
-        }
-        public void setSize(float newSize)
-        {
-            size = newSize;
-        }
-        public String getType()
-        {
-            return s.getType();
-        }
-        public Boolean getMoving() {
-            return isMoving;
-        }
-        public void setMoving(Boolean state)
-        {
-            isMoving = state ;
-        }
-        //Drawing method
-        public void drawIcon()
-        {
-            if (isMoving)
-            {
-                /*imageMode(CENTER);
-                image(icon, mouseX, mouseY, size, size);
-                imageMode(CORNER);*/
-            }
-            else
-            {
-                //image(icon, x, y, size, size);
-               
-            }//print(s.name+": IconX="+x+" IconY="+y+"  Size="+size+"\n");
-        }
-        public void move(float newX, float newY)
-        {
-            if (true)
-            {
-                //print(x);
-            }
-
-        }
-
     }
 }

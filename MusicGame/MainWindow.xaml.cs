@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Timers;
+
 using Microsoft.Speech.AudioFormat;
 using Microsoft.Speech.Recognition;
 
@@ -33,29 +35,35 @@ namespace MusicGame
     { 
         private SpeechRecognitionEngine speechEngine;
 
-        Sound a, b, c, applause, backtrack;
+        Sound applause;
         int currTime = 0;
         int len = 8;
         int heldSample;
-        
+        bool isGripinInteraction = false;
+
         Sample[] g=new Sample[4];
         Sample[] solutionSamples=new Sample[4];
-        Timer time, solutionTimer;
+        Timer time, solutionTimer, animationTimer;
         Track gt, solution;
 
+        Image concert;
         ImageSource playImg, pauseImg;
+        ImageSource[] animation;
+        int animationCurrentFrame;
 
         Rectangle[] slots=new Rectangle[8];
-        
         private KinectSensorChooser sensorChooser;
         private InteractionStream _interactionStream;
         private BackgroundRemovedColorStream backgroundRemovedColorStream;
         private WriteableBitmap foregroundBitmap;
         private int currentlyTrackedSkeletonId;
-
+        
         private Skeleton[] _skeletons; //the skeletons 
         private UserInfo[] _userInfos; //the information about the interactive users
         
+        /// <summary>
+        /// This is where the program begins
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
@@ -65,44 +73,34 @@ namespace MusicGame
         private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
             InitializeKinect();
-           
+
+            animationCurrentFrame = 0;
+            animation = GetAnimationFrames();
+            
+            animationTimer = new Timer(100);
+            animationTimer.Elapsed += animationTimer_Tick;
+            animationTimer.Start();
+
             KinectRegion.AddHandPointerGripHandler(kRegion, OnHandGrip);
             KinectRegion.AddHandPointerGripReleaseHandler(kRegion, OnHandGripRelease);
-
-            //slots[0] = slot1;
-            //slots[1] = slot2;
-            //slots[2] = slot3;
-            //slots[3] = slot4;
-            //slots[4] = slot5;
-            //slots[5] = slot6;
-            //slots[6] = slot7;
-            //slots[7] = slot8;
-
-            Image guitarIcon = new Image
-            {
-                Source = new BitmapImage(new Uri("Assets/Icons/guitar.png", UriKind.Relative)),
-                Height = 100
-            };
-
+            KinectRegion.AddQueryInteractionStatusHandler(kRegion, GripHandler);
             playImg = new BitmapImage(new Uri("Assets/Icons/playButton.png", UriKind.Relative));
             pauseImg = new BitmapImage(new Uri("Assets/Icons/pauseButton.png", UriKind.Relative));      
            
-            a=new Sound("Assets/Sounds/GuitarC.wav", "C-Chord", "guitar");
-            b=new Sound("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
-            c=new Sound("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
-            backtrack = new Sound("Assets/Sounds/drumloop_fast.wav", "BackingTrack", "drums");
+            //backtrack = new Sound("Assets/Sounds/drumloop_fast.wav", "BackingTrack", "drums");
+
+            g[0] = new Sample("Assets/Sounds/GuitarC.wav", "C-Chord", "guitar");
+            g[1] = new Sample("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
+            g[2] = new Sample("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
+            g[3] = new Sample("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
+
+            gt = new Track(8, "guitar");
             
-            g[0] = new Sample(a);
-            g[1] = new Sample(b);
-            g[2] = new Sample(c);
-            g[3] = new Sample(c);
-
-            gt = new Track(8, "guitar", 4, 5);
-
-            gt.addSample(0,g[0]);
-            gt.addSample(2,g[1]);
-            gt.addSample(4,g[2]);
-            gt.addSample(6,g[3]);
+            //gt.addSample(0,g[0]);
+            //gt.addSample(2,g[1]);
+            //gt.addSample(4,g[2]);
+            //gt.addSample(6,g[3]);
+            gt.AddSamplesRandomly(g);
 
             solutionSamples[0] = g[0];
             solutionSamples[1] = g[2];
@@ -110,7 +108,7 @@ namespace MusicGame
             solutionSamples[3] = g[3];
 
 
-            solution = new Track(8, "guitar", 1, 2);
+            solution = new Track(8, "guitar");
             solution.addSample(0, solutionSamples[0]);
             solution.addSample(2, solutionSamples[1]);
             solution.addSample(4, solutionSamples[2]);
@@ -120,43 +118,85 @@ namespace MusicGame
             drawTrack(8);
             drawIcons(gt);
 
-            
-            backtrack.playLooping();
+            //backtrack.playLooping();
+
             //Start the timer
             time = new Timer(1000);
             time.Elapsed += new ElapsedEventHandler(time_Tick);
             time.Start();
-            
         }
 
-       
+        private void animationTimer_Tick(object sender, ElapsedEventArgs e)
+        {
+            if (animationCurrentFrame > 97)
+            {
+                animationCurrentFrame = 0;
+            }
+            Dispatcher.Invoke((Action)delegate()
+            {
+                Concert.Source = animation[animationCurrentFrame];
+            });
+            
+            animationCurrentFrame++;
+        }
+        
+
+        private void GripHandler(object sender, QueryInteractionStatusEventArgs handPointerEventArgs)
+        {
+
+            //If a grip detected change the cursor image to grip
+            if (handPointerEventArgs.HandPointer.HandEventType == HandEventType.Grip)
+            {
+                isGripinInteraction = true;
+                handPointerEventArgs.IsInGripInteraction = true;
+            }
+
+           //If Grip Release detected change the cursor image to open
+            else if (handPointerEventArgs.HandPointer.HandEventType == HandEventType.GripRelease)
+            {
+                isGripinInteraction = false;
+                handPointerEventArgs.IsInGripInteraction = false;
+            }
+
+            //If no change in state do not change the cursor
+            else if (handPointerEventArgs.HandPointer.HandEventType == HandEventType.None)
+            {
+                handPointerEventArgs.IsInGripInteraction = isGripinInteraction;
+            }
+
+            handPointerEventArgs.Handled = true;
+        }
         private void OnHandGrip(object sender, HandPointerEventArgs args)
         {
-            args.HandPointer.IsInGripInteraction = true;
+
+            //args.HandPointer.IsInGripInteraction = true;
             int slot=checkHandForSlot(args.HandPointer);
 
             //Start moving the sample
             if (gt.samples[slot] != null)
             {
-                gt.samples[slot].setMoving(true);
+                gt.samples[slot].isMoving = true;
                 //MessageBox.Show("Slot: " + slot.ToString());
                 //gt.samples[slot].getIcon().Margin = new Thickness(, 0, 0, 0);
                 heldSample = slot;
+                tb.Text = "Grabbed " + gt.samples[slot].name + " from slot " + (slot+1); 
             }
             
         }
         private void OnHandGripRelease(object sender, HandPointerEventArgs args)
         {
-            args.HandPointer.IsInGripInteraction = false;
+            //args.HandPointer.IsInGripInteraction = false;
             int slot = checkHandForSlot(args.HandPointer);
 
             if (gt.samples[slot] == null && gt.samples[heldSample] != null)
             {
-                gt.samples[heldSample].setMoving(false);
+                gt.samples[heldSample].isMoving=false;
 
                 gt.addSample(slot, gt.samples[heldSample]);
                 gt.removeSample(heldSample);
-                gt.samples[slot].getIcon().Margin = new Thickness(slot * 101, 0, 0, 0);
+                gt.samples[slot].icon.Margin = new Thickness(slot * 101, 0, 0, 0);
+                tb.Text = "Dropped " + gt.samples[slot].name + " in slot "+(slot+1);
+                checkIfWon();
             }
             
         }
@@ -207,6 +247,9 @@ namespace MusicGame
             grammar.Add("stop");
             grammar.Add("pause");
             grammar.Add("solution");
+            grammar.Add("higher");
+            grammar.Add("lower");
+
 
             //set culture - language, country/region
             var gb = new GrammarBuilder { Culture = ri.Culture };
@@ -249,6 +292,18 @@ namespace MusicGame
                 case "SOLUTION":
                     playSolution();
                     break;
+                case "HIGHER":
+                    if (sensorChooser.Kinect.ElevationAngle < 21)
+                    {
+                        sensorChooser.Kinect.ElevationAngle += 5;
+                    }
+                    break;
+                case "LOWER":
+                    if (sensorChooser.Kinect.ElevationAngle > -21)
+                    {
+                        sensorChooser.Kinect.ElevationAngle -= 5;
+                    }
+                    break;
                 default:
                     break;
             }
@@ -283,7 +338,7 @@ namespace MusicGame
                  args.OldSensor.SkeletonStream.EnableTrackingInNearRange = false;
                  args.OldSensor.DepthStream.Disable();
                  args.OldSensor.SkeletonStream.Disable();
-                 args.NewSensor.ColorStream.Disable();
+                 args.OldSensor.ColorStream.Disable();
 
                  // Create the background removal stream to process the data and remove background, and initialize it.
                  if (null != this.backgroundRemovedColorStream)
@@ -312,17 +367,19 @@ namespace MusicGame
                 args.NewSensor.DepthStream.Enable();
                 args.NewSensor.SkeletonStream.Enable();
                 args.NewSensor.ColorStream.Enable();
-                
+                args.NewSensor.ElevationAngle = 0;
+
                 backgroundRemovedColorStream = new BackgroundRemovedColorStream(args.NewSensor);
                 backgroundRemovedColorStream.Enable(args.NewSensor.ColorStream.Format, args.NewSensor.DepthStream.Format);
-                
+
+                tb.Text = "";
                 // Allocate space to put the depth, color, and skeleton data we'll receive
                 if (null == this._skeletons)
                 {
                     _skeletons = new Skeleton[args.NewSensor.SkeletonStream.FrameSkeletonArrayLength];
                     _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
                     _interactionStream = new InteractionStream(args.NewSensor, new DummyInteractionClient());
-                    _interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
+                    //_interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
 
                     //args.NewSensor.DepthFrameReady += SensorOnDepthFrameReady;
                     //args.NewSensor.SkeletonFrameReady += SensorOnSkeletonFrameReady;
@@ -615,20 +672,13 @@ namespace MusicGame
                 guitarTrack.Children.Add(slots[i]);
 
             }
-            //guitarTrack.Margin = new System.Windows.Thickness(236,0,0,0);
         }
         private void drawIcons(Track t)
         {
             for (int i = 0; i < t.trackLength; i++) {
                 if (t.samples[i] != null)
                 {
-                    //Image icon = new Image
-                    //{
-                    //    Source = new BitmapImage(new Uri(t.samples[i].getIcon(), UriKind.Relative)),
-                    //    Margin = new System.Windows.Thickness(101*i,0,0,0),
-                    //    Height = 100
-                    //};
-                    Image img = t.samples[i].getIcon();
+                    Image img = t.samples[i].icon;
                     img.Margin = new Thickness(101 * i, 0, 0, 0);
                     guitarTrack.Children.Add(img);
                 }
@@ -636,34 +686,56 @@ namespace MusicGame
         }
         public void time_Tick(object sender, EventArgs e)
         {     
-            if (currTime == len - 1) {
+            //Reset current Time if it runs over the track
+            if (currTime == len) {
                 currTime = 0;
             }
-            checkIfWon();
-
-            //slots[0].Fill = Brushes.Violet;
+            //Update the UI on each tick
+            Dispatcher.Invoke((Action)delegate() {
+                slots[currTime].Fill = Brushes.PaleVioletRed;
+                if (currTime == 0)
+                {
+                    slots[len-1].Fill = Brushes.PaleGreen;
+                }
+                else slots[currTime - 1].Fill = Brushes.PaleGreen;
+            });
+            //foreach (var track in tracks)
+            //{
+            //    track.play(currTime);
+            //}
             gt.play(currTime);
             currTime++;
         }
-
+       
         private void checkIfWon()
         {
             if (compareTracks(gt, solution)) {
                 Win();
-                time.Stop();
             }
         }
         private bool compareTracks(Track t1, Track t2){
             for (int i = 0; i < len; i++)
             {
-                if (t1.samples[i] != t2.samples[i])
+                //If both slots are empty, ignore
+                if (t1.samples[i] == null && t2.samples[i] == null) {}
+                //If one is empty, not a match
+                else if((t1.samples[i]!=null && t2.samples[i]==null)||(t1.samples[i]==null && t2.samples[i]!=null)){
                     return false;
+                }
+                //If both are filled, compare them
+                else if (t1.samples[i] != null && t2.samples[i] != null)
+                {
+                    //If they are the same sound, move on to the next
+                    if (t1.samples[i].name.Equals(t2.samples[i].name)) { }
+                    else return false;
+                }
+                else return false;
             }
             return true;
         }
         private void playButton_Click(object sender, RoutedEventArgs e)
         {
-            if (gt.getPlaying())
+            if (gt.isPlaying)
             {
                 pauseTrack(gt);
             }
@@ -675,8 +747,11 @@ namespace MusicGame
             try
             {
                 time.Start();
-                t.setPlaying(true);
-                playButtonImage.Source = pauseImg;
+                t.isPlaying=true;
+                Dispatcher.Invoke((Action)delegate()
+                {
+                    playButtonImage.Source = pauseImg;
+                });
             }
             catch (Exception e)
             {
@@ -688,8 +763,11 @@ namespace MusicGame
             try
             {
                 time.Stop();
-                t.setPlaying(false);
-                playButtonImage.Source = playImg;
+                t.isPlaying=false;
+                Dispatcher.Invoke((Action)delegate()
+                {
+                    playButtonImage.Source = playImg;
+                });
             }
             catch (Exception e)
             {
@@ -699,6 +777,16 @@ namespace MusicGame
         }
         private void solutionTimer_Tick(object sender, ElapsedEventArgs e)
         {
+            //Update UI
+            Dispatcher.Invoke((Action)delegate()
+            {
+                slots[currTime].Fill = Brushes.BlueViolet;
+                if (currTime == 0)
+                {
+                    slots[len - 1].Fill = Brushes.PaleGreen;
+                }
+                else slots[currTime - 1].Fill = Brushes.PaleGreen;
+            });
             if (currTime == len - 1)
             {
                 stopSolution();
@@ -724,14 +812,35 @@ namespace MusicGame
             solutionTimer.Stop();
         }
         private void Win() {
-            
-            backtrack.stop();
+            time.Stop();
+            //backtrack.stop();
+            tb.Text = "Congrats you won!!";
             //pauseTrack(gt);
             applause = new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
             applause.playLooping();
-            time.Stop();
-            MessageBox.Show("Congrats, you won!");
-
         }
+        private ImageSource[] GetAnimationFrames()
+        {
+            try
+            {
+                ImageSource[] loop = new ImageSource[98];
+                for (int i = 1; i < 10; i++)
+                {
+                    loop[i] = new BitmapImage(new Uri("Assets/Animation/Rock Concert Crowd HD loop 0" + i, UriKind.Relative));
+
+                }
+                for (int i = 10; i < 98; i++)
+                {
+                    loop[i] = new BitmapImage(new Uri("Assets/Animation/Rock Concert Crowd HD loop " + i, UriKind.Relative));
+                }
+                return loop;
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+                throw;
+            }
+        }
+
     }
 }
