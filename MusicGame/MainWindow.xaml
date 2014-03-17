@@ -6,28 +6,29 @@
     <Grid>
         <Grid Grid.Row="1">
             <Image Name ="Concert" Stretch="Fill" Source="Assets\Animation\Rock Concert Crowd HD Loop 01.jpg"/>
-            <Image Name ="MaskedColor" />
+            <Image Name ="MaskedColor" Margin="294,0,294,158" />
         </Grid>
         <k:KinectSensorChooserUI HorizontalAlignment="Center" VerticalAlignment="Top" Name="sensorChooserUi" />
         <!--<k:KinectUserViewer VerticalAlignment="Top" HorizontalAlignment="Center" k:KinectRegion.KinectRegion="{Binding ElementName=kRegion}" Height="100" />-->
-        <Viewbox Margin="10,112,922,367" SnapsToDevicePixels="False">
-            <TextBlock Background="AliceBlue" Name="instructions" TextWrapping="Wrap" FontSize="70" FontFamily="Helvetica" Text="Drag and Drop the musical samples to match the solution track!" Height="426" Width="580"  />
-        </Viewbox>
         <k:KinectRegion Name="kRegion" >
-            <Canvas Name="tracks" Margin="0,400,0,0" Height="250" VerticalAlignment="Top">
-                
-                <Canvas Name="guitarTrack" Height="100" Width="808" Canvas.Left="236">
-                </Canvas>
-                <k:KinectCircleButton Name="playButton" Click="playButton_Click" Height="100" Canvas.Left="87">
-                    <Image Name="playButtonImage" Source="Assets\Icons\pauseButton.png"/>
-                </k:KinectCircleButton>
-                <k:KinectTileButton Background="RoyalBlue" Click="SolutionButton_Click" TextElement.Foreground="AntiqueWhite" Name="SolutionButton" Height="76" Canvas.Top="119" Width="380" Canvas.Left="450">Play Solution</k:KinectTileButton>
+            <Canvas Name="tracksArea" Margin="0,350,0,0" VerticalAlignment="Top">
+                <Canvas Name="tracksUI" Margin="236,0,0,0"></Canvas>
+                <!--<Canvas Name="guitarTrack" Height="100" Width="808" Canvas.Left="236">
+                </Canvas>-->
+                <k:KinectTileButton Background="RoyalBlue" Name="playButton" Click="playButton_Click" Height="76" Canvas.Left="236" TextElement.Foreground="White" Canvas.Top="220" Width="404">Pause</k:KinectTileButton>
+                <k:KinectTileButton Background="RoyalBlue" Click="SolutionButton_Click" TextElement.Foreground="AntiqueWhite" Name="SolutionButton" Height="76" Canvas.Top="220" Width="404" Canvas.Left="640">Solution</k:KinectTileButton>
             </Canvas>
 
         </k:KinectRegion>
-        <Viewbox Margin="922,81,10,356" SnapsToDevicePixels="False">
-            <TextBlock Name="tb" Background="Azure" FontFamily="Helvetica" Text="Initializing.."  />
+        <Viewbox Margin="984,10,0,469" SnapsToDevicePixels="False" >
+            <Border Background="RoyalBlue" Opacity="0.7" Padding="10,10,10,10" BorderThickness="1" BorderBrush="RoyalBlue" CornerRadius="8,8,8,8">
+                <TextBlock Height="450" Opacity="1" Name="consoleUI" TextWrapping="Wrap" FontSize="70" FontFamily="Helvetica" Text="Initializing.." Foreground="White" Width="580"  />
+            </Border>
         </Viewbox>
-
+        <Viewbox Margin="0,10,984,469" SnapsToDevicePixels="False">
+            <Border Padding="10,10,10,10" Background="RoyalBlue" Opacity="0.7" BorderThickness="2" BorderBrush="RoyalBlue" CornerRadius="8,8,8,8">
+                <TextBlock Opacity="1" Foreground="White" Name="instructions" TextWrapping="Wrap" FontSize="70" FontFamily="Helvetica" Text="Drag and Drop the musical samples to match the solution track!" Height="450" Width="580"  />
+            </Border>
+        </Viewbox>
     </Grid>
 </Window>

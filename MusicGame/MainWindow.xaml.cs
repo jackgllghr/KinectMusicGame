@@ -38,19 +38,23 @@ namespace MusicGame
         Sound applause;
         int currTime = 0;
         int len = 8;
-        int heldSample;
+        int numberOfTracks = 2;
+        int heldSampleSlot, heldSampleTrack;
+        int timerSpeed = 500;
         bool isGripinInteraction = false;
 
-        Sample[] g=new Sample[4];
-        Sample[] solutionSamples=new Sample[4];
+        Sample[] guitar=new Sample[4];
+        Sample[] drums = new Sample[6];
+       
         Timer time, solutionTimer, animationTimer;
-        Track gt, solution;
+        
+        Track[] tracks, solutionTracks;
 
         ImageSource playImg, pauseImg;
         ImageSource[] animation;
         int animationCurrentFrame;
 
-        Rectangle[] slots=new Rectangle[8];
+        //Rectangle[] slots=new Rectangle[8];
         private KinectSensorChooser sensorChooser;
         private InteractionStream _interactionStream;
         private BackgroundRemovedColorStream backgroundRemovedColorStream;
@@ -72,7 +76,6 @@ namespace MusicGame
         private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
             InitializeKinect();
-
             
             animationCurrentFrame = 0;
             animation = GetAnimationFrames();
@@ -87,63 +90,71 @@ namespace MusicGame
             pauseImg = new BitmapImage(new Uri("Assets/Icons/pauseButton.png", UriKind.Relative));      
            
             //backtrack = new Sound("Assets/Sounds/drumloop_fast.wav", "BackingTrack", "drums");
+            tracks = new Track[numberOfTracks];
+            solutionTracks = new Track[numberOfTracks];
 
-            g[0] = new Sample("Assets/Sounds/GuitarC.wav", "C-Chord", "guitar");
-            g[1] = new Sample("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
-            g[2] = new Sample("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
-            g[3] = new Sample("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
+            guitar[0] = new Sample("Assets/Sounds/GuitarC.wav", "C-Chord", "guitar");
+            guitar[1] = new Sample("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
+            guitar[2] = new Sample("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
+            guitar[3] = new Sample("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
 
-            gt = new Track(8, "guitar");
-            
-            //gt.addSample(0,g[0]);
-            //gt.addSample(2,g[1]);
-            //gt.addSample(4,g[2]);
-            //gt.addSample(6,g[3]);
-            gt.AddSamplesRandomly(g);
+            drums[0] = new Sample("Assets/Sounds/hihat.wav", "Hi-Hat", "drums");
+            drums[1] = new Sample("Assets/Sounds/hihat.wav", "Hi-Hat", "drums");
+            drums[2] = new Sample("Assets/Sounds/hihat.wav", "Hi-Hat", "drums");
+            drums[3] = new Sample("Assets/Sounds/hihat.wav", "Hi-Hat", "drums");
+            drums[4] = new Sample("Assets/Sounds/snare.wav", "Snare", "drums");
+            drums[5] = new Sample("Assets/Sounds/snare.wav", "Snare", "drums");
 
-            solutionSamples[0] = g[0];
-            solutionSamples[1] = g[2];
-            solutionSamples[2] = g[1];
-            solutionSamples[3] = g[3];
+            tracks[0] = new Track(len, "guitar",0);
+            tracks[0].AddSamplesRandomly(guitar);
 
+            tracks[1] = new Track(len, "drums", 1);
+            tracks[1].AddSamplesRandomly(drums);
 
-            solution = new Track(8, "guitar");
-            solution.addSample(0, solutionSamples[0]);
-            solution.addSample(2, solutionSamples[1]);
-            solution.addSample(4, solutionSamples[2]);
-            solution.addSample(6, solutionSamples[3]);
-            solutionTimer = new Timer(1000);
+            solutionTracks[0] = new Track(len, "guitar",0);
+            solutionTracks[0].addSample(0, guitar[0]);
+            solutionTracks[0].addSample(2, guitar[1]);
+            solutionTracks[0].addSample(4, guitar[2]);
+            solutionTracks[0].addSample(6, guitar[3]);
+
+            solutionTracks[1] = new Track(len, "drums", 1);
+            solutionTracks[1].addSample(0, drums[0]);
+            solutionTracks[1].addSample(1, drums[1]);
+            solutionTracks[1].addSample(3, drums[4]);
+            solutionTracks[1].addSample(4, drums[2]);
+            solutionTracks[1].addSample(5, drums[3]);
+            solutionTracks[1].addSample(7, drums[5]);
+
+            solutionTimer = new Timer(timerSpeed);
             solutionTimer.Elapsed += new ElapsedEventHandler(solutionTimer_Tick);
-            drawTrack(8);
-            drawIcons(gt);
+            //drawTrack(8);
+            //drawIcons(gt);
 
+            foreach (Track t in tracks)
+            {
+                t.drawIcons();
+                tracksUI.Children.Add(t.trackUI);
+                
+            }
             //backtrack.playLooping();
 
             //Start the timer
-            time = new Timer(1000);
+            time = new Timer(timerSpeed);
             time.Elapsed += new ElapsedEventHandler(time_Tick);
             time.Start();
         }
 
         private void animationTimer_Tick(object sender, ElapsedEventArgs e)
         {
-            try
-            {
-                if (animationCurrentFrame == 98)
-                {
-                    animationCurrentFrame = 0;
-                }
                 Dispatcher.Invoke((Action)delegate(){
                         Concert.Source = animation[animationCurrentFrame];
                 });
-                
                 animationCurrentFrame++;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString());
-                throw;
-            }
+                if (animationCurrentFrame == 97)
+                {
+                    animationCurrentFrame = 0;
+                }
+           
         }
         
 
@@ -177,15 +188,18 @@ namespace MusicGame
 
             //args.HandPointer.IsInGripInteraction = true;
             int slot=checkHandForSlot(args.HandPointer);
+            int trackSelected = CheckHandForTrack(args.HandPointer);
+
 
             //Start moving the sample
-            if (gt.samples[slot] != null)
+            if (tracks[trackSelected].samples[slot] != null)
             {
-                gt.samples[slot].isMoving = true;
+                tracks[trackSelected].samples[slot].isMoving = true;
                 //MessageBox.Show("Slot: " + slot.ToString());
                 //gt.samples[slot].getIcon().Margin = new Thickness(, 0, 0, 0);
-                heldSample = slot;
-                tb.Text = "Grabbed " + gt.samples[slot].name + " from slot " + (slot+1); 
+                heldSampleSlot = slot;
+                heldSampleTrack=trackSelected;
+                consoleUI.Text = "Grabbed " + tracks[trackSelected].samples[slot].name + " (slot " + (slot + 1) + ") in " + tracks[trackSelected].type + " track"; 
             }
             
         }
@@ -193,23 +207,48 @@ namespace MusicGame
         {
             //args.HandPointer.IsInGripInteraction = false;
             int slot = checkHandForSlot(args.HandPointer);
+            int trackSelected = CheckHandForTrack(args.HandPointer);
 
-            if (gt.samples[slot] == null && gt.samples[heldSample] != null)
+            if(slot==heldSampleSlot){
+                //do nothing
+                
+            }
+
+            else if (heldSampleTrack == trackSelected && tracks[trackSelected].samples[slot] == null && tracks[trackSelected].samples[heldSampleSlot] != null)
             {
-                gt.samples[heldSample].isMoving=false;
+                tracks[trackSelected].samples[heldSampleSlot].isMoving=false;
 
-                gt.addSample(slot, gt.samples[heldSample]);
-                gt.removeSample(heldSample);
-                gt.samples[slot].icon.Margin = new Thickness(slot * 101, 0, 0, 0);
-                tb.Text = "Dropped " + gt.samples[slot].name + " in slot "+(slot+1);
-                checkIfWon();
+                tracks[trackSelected].addSample(slot, tracks[trackSelected].samples[heldSampleSlot]);
+                tracks[trackSelected].removeSample(heldSampleSlot);
+                tracks[trackSelected].samples[slot].icon.Margin = new Thickness(slot * 101, 0, 0, 0);
+                consoleUI.Text = "Dropped " + tracks[trackSelected].samples[slot].name + " (slot " + (slot + 1) + ") in "+tracks[trackSelected].type+" track";
+                if (checkIfWon()) { 
+                    Win(); 
+                }
+            }
+            else if (heldSampleTrack == trackSelected && tracks[trackSelected].samples[slot] != null && tracks[trackSelected].samples[heldSampleSlot] != null)
+            {
+                tracks[trackSelected].SwapSamples(slot, heldSampleSlot);
+                consoleUI.Text = "Swapped " + tracks[trackSelected].samples[slot].name + " (slot " + (slot + 1) + ") with "
+                    +tracks[trackSelected].samples[heldSampleSlot].name+" (slot "+ (heldSampleSlot+1) +") in " + tracks[trackSelected].type + " track";
+                if (checkIfWon())
+                {
+                    Win();
+                }
             }
             
+        }
+
+        private int CheckHandForTrack(HandPointer handPointer)
+        {
+            double y = handPointer.GetPosition(tracksUI).Y;
+            int trackSelected = (int)y / 101;
+            return trackSelected;
         }
         private int checkHandForSlot(HandPointer hand)
         {
             //Get Slot
-            double x = hand.GetPosition(guitarTrack).X;
+            double x = hand.GetPosition(tracksUI).X;
             int slot = (int)x / 101;
             return slot;
         }
@@ -253,8 +292,8 @@ namespace MusicGame
             grammar.Add("stop");
             grammar.Add("pause");
             grammar.Add("solution");
-            grammar.Add("higher");
-            grammar.Add("lower");
+            //grammar.Add("higher");
+            //grammar.Add("lower");
 
 
             //set culture - language, country/region
@@ -289,27 +328,27 @@ namespace MusicGame
             switch (e.Result.Text.ToUpperInvariant())
             {
                 case "PLAY":
-                    playTrack(gt);
+                    playTracks();
                     break;
                 case "STOP":
                 case "PAUSE":
-                    pauseTrack(gt);
+                    pauseTracks();
                     break;
                 case "SOLUTION":
                     playSolution();
                     break;
-                case "HIGHER":
-                    if (sensorChooser.Kinect.ElevationAngle < 21)
-                    {
-                        sensorChooser.Kinect.ElevationAngle += 5;
-                    }
-                    break;
-                case "LOWER":
-                    if (sensorChooser.Kinect.ElevationAngle > -21)
-                    {
-                        sensorChooser.Kinect.ElevationAngle -= 5;
-                    }
-                    break;
+                //case "HIGHER":
+                //    if (sensorChooser.Kinect.ElevationAngle < 21)
+                //    {
+                //        sensorChooser.Kinect.ElevationAngle += 5;
+                //    }
+                //    break;
+                //case "LOWER":
+                //    if (sensorChooser.Kinect.ElevationAngle > -21)
+                //    {
+                //        sensorChooser.Kinect.ElevationAngle -= 5;
+                //    }
+                //    break;
                 default:
                     break;
             }
@@ -378,7 +417,7 @@ namespace MusicGame
                 backgroundRemovedColorStream = new BackgroundRemovedColorStream(args.NewSensor);
                 backgroundRemovedColorStream.Enable(args.NewSensor.ColorStream.Format, args.NewSensor.DepthStream.Format);
 
-                tb.Text = "";
+                consoleUI.Text = "Raise your hand and grab a sample to start!";
                 // Allocate space to put the depth, color, and skeleton data we'll receive
                 if (null == this._skeletons)
                 {
@@ -427,133 +466,74 @@ namespace MusicGame
                 StartAudioListening();
         }
     }
-    //    private void SensorOnSkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs skeletonFrameReadyEventArgs)
-    //    {
-    //        using (SkeletonFrame skeletonFrame = skeletonFrameReadyEventArgs.OpenSkeletonFrame())
-    //        {
-    //            if (skeletonFrame == null)
-    //                return;
+   
+//        private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
+ //       private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
+        //private void InteractionStreamOnInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args)
+        //{
+        //    using (var iaf = args.OpenInteractionFrame()) //dispose as soon as possible
+        //    {
+        //        if (iaf == null)
+        //            return;
 
-    //            try
-    //            {
-    //                skeletonFrame.CopySkeletonDataTo(_skeletons);
-    //                var accelerometerReading = this.sensorChooser.Kinect.AccelerometerGetCurrentReading();
-    //                _interactionStream.ProcessSkeleton(_skeletons, accelerometerReading, skeletonFrame.Timestamp);
-    //                this.ChooseSkeleton();
-    //            }
-    //            catch (InvalidOperationException e)
-    //            {
-    //                // SkeletonFrame functions may throw when the sensor gets
-    //                // into a bad state.  Ignore the frame in that case.
-    //                Debug.WriteLine("Skeleton: "+e.ToString());
-    //            }
-    //        }
-    //    }
-    //    private void SensorOnDepthFrameReady(object sender, DepthImageFrameReadyEventArgs depthImageFrameReadyEventArgs)
-    //    {
-    //        using (DepthImageFrame depthFrame = depthImageFrameReadyEventArgs.OpenDepthImageFrame())
-    //        {
-    //            if (depthFrame == null)
-    //                return;
+        //        iaf.CopyInteractionDataTo(_userInfos);
+        //    }
+        //    StringBuilder dump = new StringBuilder();
 
-    //            try
-    //            {
-    //                _interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
-    //                backgroundRemovedColorStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
-                    
-    //            }
-    //            catch (InvalidOperationException e)
-    //            {
-    //                // DepthFrame functions may throw when the sensor gets
-    //                // into a bad state.  Ignore the frame in that case.
-    //                //MessageBox.Show(e.ToString());
-    //                Debug.WriteLine("Depth: "+e.ToString());
-    //            }
-    //        }
-    //    }
-    //    private void SensorOnColorImageFrameReady(object sender, ColorImageFrameReadyEventArgs colorImageFrameReadyEventArgs){
-    //        using(ColorImageFrame colorFrame=colorImageFrameReadyEventArgs.OpenColorImageFrame())
-    //        {
-    //            if (colorFrame == null)
-    //                return;
-    //            try {
-    //                this.backgroundRemovedColorStream.ProcessColor(colorFrame.GetRawPixelData(), colorFrame.Timestamp);
-                   
-    //            }
-    //            catch(InvalidOperationException e)
-    //            {
-    //                Debug.WriteLine("Color: "+e.ToString());
-    //            }
-    //        }
-    //}
+        //    var hasUser = false;
+        //    foreach (var userInfo in _userInfos)
+        //    {
+        //        var userID = userInfo.SkeletonTrackingId;
+        //        if (userID == 0)
+        //            continue;
 
-        private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
-        private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
-        private void InteractionStreamOnInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args)
-        {
-            using (var iaf = args.OpenInteractionFrame()) //dispose as soon as possible
-            {
-                if (iaf == null)
-                    return;
+        //        hasUser = true;
+        //        dump.AppendLine("User ID = " + userID);
+        //        dump.AppendLine("  Hands: ");
+        //        var hands = userInfo.HandPointers;
+        //        if (hands.Count == 0)
+        //            dump.AppendLine("    No hands");
+        //        else
+        //        {
+        //            foreach (var hand in hands)
+        //            {
+        //                var lastHandEvents = hand.HandType == InteractionHandType.Left
+        //                                         ? _lastLeftHandEvents
+        //                                         : _lastRightHandEvents;
 
-                iaf.CopyInteractionDataTo(_userInfos);
-            }
-            StringBuilder dump = new StringBuilder();
+        //                if (hand.HandEventType != InteractionHandEventType.None)
+        //                    lastHandEvents[userID] = hand.HandEventType;
 
-            var hasUser = false;
-            foreach (var userInfo in _userInfos)
-            {
-                var userID = userInfo.SkeletonTrackingId;
-                if (userID == 0)
-                    continue;
-
-                hasUser = true;
-                dump.AppendLine("User ID = " + userID);
-                dump.AppendLine("  Hands: ");
-                var hands = userInfo.HandPointers;
-                if (hands.Count == 0)
-                    dump.AppendLine("    No hands");
-                else
-                {
-                    foreach (var hand in hands)
-                    {
-                        var lastHandEvents = hand.HandType == InteractionHandType.Left
-                                                 ? _lastLeftHandEvents
-                                                 : _lastRightHandEvents;
-
-                        if (hand.HandEventType != InteractionHandEventType.None)
-                            lastHandEvents[userID] = hand.HandEventType;
-
-                        var lastHandEvent = lastHandEvents.ContainsKey(userID)
-                                                ? lastHandEvents[userID]
-                                                : InteractionHandEventType.None;
+        //                var lastHandEvent = lastHandEvents.ContainsKey(userID)
+        //                                        ? lastHandEvents[userID]
+        //                                        : InteractionHandEventType.None;
                         
-                        dump.AppendLine();
-                        dump.AppendLine("    HandType: " + hand.HandType);
-                        dump.AppendLine("    HandEventType: " + hand.HandEventType);
-                        dump.AppendLine("    LastHandEventType: " + lastHandEvent);
-                        dump.AppendLine("    IsActive: " + hand.IsActive);
-                        dump.AppendLine("    IsPrimaryForUser: " + hand.IsPrimaryForUser);
-                        dump.AppendLine("    IsInteractive: " + hand.IsInteractive);
-                        dump.AppendLine("    PressExtent: " + hand.PressExtent.ToString("N3"));
-                        dump.AppendLine("    IsPressed: " + hand.IsPressed);
-                        dump.AppendLine("    IsTracked: " + hand.IsTracked);
-                        dump.AppendLine("    X: " + hand.X.ToString("N3"));
-                        dump.AppendLine("    Y: " + hand.Y.ToString("N3"));
-                        dump.AppendLine("    RawX: " + hand.RawX.ToString("N3"));
-                        dump.AppendLine("    RawY: " + hand.RawY.ToString("N3"));
-                        dump.AppendLine("    RawZ: " + hand.RawZ.ToString("N3"));
+        //                dump.AppendLine();
+        //                dump.AppendLine("    HandType: " + hand.HandType);
+        //                dump.AppendLine("    HandEventType: " + hand.HandEventType);
+        //                dump.AppendLine("    LastHandEventType: " + lastHandEvent);
+        //                dump.AppendLine("    IsActive: " + hand.IsActive);
+        //                dump.AppendLine("    IsPrimaryForUser: " + hand.IsPrimaryForUser);
+        //                dump.AppendLine("    IsInteractive: " + hand.IsInteractive);
+        //                dump.AppendLine("    PressExtent: " + hand.PressExtent.ToString("N3"));
+        //                dump.AppendLine("    IsPressed: " + hand.IsPressed);
+        //                dump.AppendLine("    IsTracked: " + hand.IsTracked);
+        //                dump.AppendLine("    X: " + hand.X.ToString("N3"));
+        //                dump.AppendLine("    Y: " + hand.Y.ToString("N3"));
+        //                dump.AppendLine("    RawX: " + hand.RawX.ToString("N3"));
+        //                dump.AppendLine("    RawY: " + hand.RawY.ToString("N3"));
+        //                dump.AppendLine("    RawZ: " + hand.RawZ.ToString("N3"));
                         
-                    }
-                }
+        //            }
+        //        }
 
-                tb.Text = dump.ToString();
-            }
+        //        consoleUI.Text = dump.ToString();
+        //    }
 
-            if (!hasUser)
-                tb.Text = "No user detected.";
+        //    if (!hasUser)
+        //        consoleUI.Text = "No user detected.";
 
-        }
+        //}
 
         private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs args)
         {
@@ -662,34 +642,24 @@ namespace MusicGame
             }
         }
 
-        private void drawTrack(int len)
-        {
-            for (int i = 0; i < len; i++)
-            {
-                slots[i] = new Rectangle
-                {
-                    Width = 100,
-                    Height = 100,
-                    Margin = new System.Windows.Thickness(101 * i, 0, 0, 0),
-                    Fill = Brushes.PaleGreen,
-                    Name="slot"+(i+1)
-                };
+        //private void drawTrack(Track t)
+        //{
+        //    for (int i = 0; i < len; i++)
+        //    {
+        //        slots[i] = new Rectangle
+        //        {
+        //            Width = 100,
+        //            Height = 100,
+        //            Margin = new System.Windows.Thickness(101 * i, 0, 0, 0),
+        //            Fill = Brushes.PaleGreen,
+        //            Name="slot"+(i+1)
+        //        };
                
-                guitarTrack.Children.Add(slots[i]);
+        //        guitarTrack.Children.Add(slots[i]);
 
-            }
-        }
-        private void drawIcons(Track t)
-        {
-            for (int i = 0; i < t.trackLength; i++) {
-                if (t.samples[i] != null)
-                {
-                    Image img = t.samples[i].icon;
-                    img.Margin = new Thickness(101 * i, 0, 0, 0);
-                    guitarTrack.Children.Add(img);
-                }
-            }
-        }
+        //    }
+        //}
+        
         public void time_Tick(object sender, EventArgs e)
         {     
             //Reset current Time if it runs over the track
@@ -698,26 +668,34 @@ namespace MusicGame
             }
             //Update the UI on each tick
             Dispatcher.Invoke((Action)delegate() {
-                slots[currTime].Fill = Brushes.PaleVioletRed;
-                if (currTime == 0)
+                foreach (Track t in tracks)
                 {
-                    slots[len-1].Fill = Brushes.PaleGreen;
+                    t.slots[currTime].Fill = Brushes.PaleVioletRed;
+                    if (currTime == 0)
+                    {
+                        t.slots[len - 1].Fill = Brushes.PaleGreen;
+                    }
+                    else t.slots[currTime - 1].Fill = Brushes.PaleGreen;
                 }
-                else slots[currTime - 1].Fill = Brushes.PaleGreen;
             });
-            //foreach (var track in tracks)
-            //{
-            //    track.play(currTime);
-            //}
-            gt.play(currTime);
+            foreach (Track t in tracks)
+            {
+                t.play(currTime);
+            }
             currTime++;
         }
        
-        private void checkIfWon()
+        private bool checkIfWon()
         {
-            if (compareTracks(gt, solution)) {
-                Win();
+            for (int i = 0; i < numberOfTracks;i++ )
+            {
+                if (compareTracks(tracks[i], solutionTracks[i]))
+                {
+                    //match, do nothing
+                }
+                else return false;
             }
+            return true;
         }
         private bool compareTracks(Track t1, Track t2){
             for (int i = 0; i < len; i++)
@@ -741,22 +719,29 @@ namespace MusicGame
         }
         private void playButton_Click(object sender, RoutedEventArgs e)
         {
-            if (gt.isPlaying)
+            if (tracks[0].isPlaying)
             {
-                pauseTrack(gt);
+                pauseTracks();
             }
-            else {
-                playTrack(gt);
+            else
+            {
+                playTracks();
             }
         }
-        private void playTrack(Track t){
+        private void playTracks(){
             try
             {
+
                 time.Start();
-                t.isPlaying=true;
+                foreach (Track t in tracks)
+                {
+                    t.isPlaying = true;
+                }
+                
                 Dispatcher.Invoke((Action)delegate()
                 {
-                    playButtonImage.Source = pauseImg;
+                    //playButtonImage.Source = pauseImg;
+                    playButton.Content = "Pause";
                 });
             }
             catch (Exception e)
@@ -765,14 +750,18 @@ namespace MusicGame
                 throw;
             }
         }
-        private void pauseTrack(Track t) {
+        private void pauseTracks() {
             try
             {
                 time.Stop();
-                t.isPlaying=false;
+                foreach (Track t in tracks)
+                {
+                    t.isPlaying = false;
+                }
                 Dispatcher.Invoke((Action)delegate()
                 {
-                    playButtonImage.Source = playImg;
+                    //playButtonImage.Source = playImg;
+                    playButton.Content = "Play";
                 });
             }
             catch (Exception e)
@@ -783,23 +772,27 @@ namespace MusicGame
         }
         private void solutionTimer_Tick(object sender, ElapsedEventArgs e)
         {
-            //Update UI
-            Dispatcher.Invoke((Action)delegate()
-            {
-                slots[currTime].Fill = Brushes.BlueViolet;
-                if (currTime == 0)
-                {
-                    slots[len - 1].Fill = Brushes.PaleGreen;
-                }
-                else slots[currTime - 1].Fill = Brushes.PaleGreen;
-            });
-            if (currTime == len - 1)
+            if (currTime == len)
             {
                 stopSolution();
             }
             else
             {
-                solution.play(currTime);
+                for(int i=0;i<numberOfTracks;i++)
+                {
+                    solutionTracks[i].play(currTime);
+                    //Update UI
+                    Dispatcher.Invoke((Action)delegate()
+                    {
+                        tracks[i].slots[currTime].Fill = Brushes.RoyalBlue;
+                        if (currTime == 0)
+                        {
+                            tracks[i].slots[len - 1].Fill = Brushes.PaleGreen;
+                        }
+                        else tracks[i].slots[currTime - 1].Fill = Brushes.PaleGreen;
+
+                    });
+                }
                 currTime++;
             }
         }
@@ -808,20 +801,25 @@ namespace MusicGame
             playSolution();
         }
         private void playSolution() {
+            Dispatcher.Invoke((Action)delegate() {
+                foreach (Track t in tracks) {
+                    t.slots[currTime].Fill = Brushes.PaleGreen;
+                }
+            });
             currTime = 0;
-            pauseTrack(gt);
+            pauseTracks();
             solutionTimer.Start();
         }
         private void stopSolution() {
-            playTrack(gt);
+            playTracks();
             currTime = 0;
             solutionTimer.Stop();
         }
         private void Win() {
             time.Stop();
             //backtrack.stop();
-            tb.Text = "Congrats you won!!";
-            //pauseTrack(gt);
+            consoleUI.Text = "Congrats you won!!";
+            //pauseTracks();
             applause = new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
             applause.playLooping();
         }
