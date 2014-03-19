@@ -7,11 +7,16 @@ using System.Windows.Shapes;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-
 namespace MusicGame
 {
+    /// <summary>
+    /// Contains all data and UI elements associated with a track in the game
+    /// </summary>
   class Track {
-      public Boolean isPlaying { get; set; }
+      /// <summary>
+      /// Boolean that sets there the track is playing/muted
+      /// </summary>
+      public bool isPlaying { get; set; }
       /// <summary>
       /// The samples array contains the samples and the slot in the array corresponds to the slot in the track the sample occupies
       /// </summary>
@@ -21,6 +26,7 @@ namespace MusicGame
       /// The length of the track, in number of samples per loop
       /// </summary>
       public int trackLength { get; set; }
+      
       /// <summary>
       /// The type of the track (i.e. guitar/bass/drums)
       /// </summary>
@@ -36,8 +42,16 @@ namespace MusicGame
       /// </summary>
       public Rectangle[] slots { get; set; }
 
+      /// <summary>
+      /// Image object for the mute and unmute icons that appear in the UI
+      /// </summary>
       Image muteIcon, volumeIcon;
+      
+      /// <summary>
+      /// A KinectTileButton that is used to set the track to mute or unmute
+      /// </summary>
       public Microsoft.Kinect.Toolkit.Controls.KinectTileButton mute { get; set; }
+      
       /// <summary>
       /// The constructor takes the length the track needs to be, the type of track, and which order number it is. This is used to set the UI  
       /// </summary>
@@ -50,6 +64,8 @@ namespace MusicGame
         isPlaying=true;
         trackLength=len;
         type=trackType;
+
+        //Set up the UI Elements
         slots = new Rectangle[len];
         trackUI = new Canvas {
             Height=100, 
@@ -57,7 +73,7 @@ namespace MusicGame
             Margin=new System.Windows.Thickness(0,101*trackNo,0,0)
             
         };
-        
+        //Add the UI Rectangle for each slot in the track
         for (int i = 0; i < trackLength; i++)
         {
             slots[i] = new Rectangle
@@ -71,7 +87,8 @@ namespace MusicGame
             };
             trackUI.Children.Add(slots[i]);
         }
-
+        
+        //Add a mute button to each track
         muteIcon = new Image();
         volumeIcon = new Image();
         muteIcon.Source = new BitmapImage(new Uri("Assets/Icons/muteIconWhite.png", UriKind.Relative));
@@ -91,7 +108,11 @@ namespace MusicGame
         mute.Click+=new System.Windows.RoutedEventHandler(MuteButtonClick);
         trackUI.Children.Add(mute);
       }
-
+      /// <summary>
+      /// Event handler for the mute button, if hit, a track is set to mute if it's playing or vice versa
+      /// </summary>
+      /// <param name="sender"></param>
+      /// <param name="e"></param>
       private void MuteButtonClick(object sender, EventArgs e)
       {
           MuteTrack();
@@ -103,7 +124,7 @@ namespace MusicGame
       /// </summary>
       /// <param name="i">The slot to insert the sample</param>
       /// <param name="s">The sample object that contains audio data</param>
-      public void addSample(int i, Sample s) {
+      public void AddSample(int i, Sample s) {
           if (s.type == type)
           {
               samples[i] = s;
@@ -114,7 +135,7 @@ namespace MusicGame
       /// Removes a sample from the track, where i is the slot with the sample to be removed
       /// </summary>
       /// <param name="i">Slot which contains the sample to be removed</param>
-      public void removeSample(int i) {
+      public void RemoveSample(int i) {
         samples[i]=null;
       }
       /// <summary>
@@ -129,41 +150,66 @@ namespace MusicGame
           samples[j] = temp;
       }
       /// <summary>
+      /// Move a sample from one slot to another
+      /// </summary>
+      /// <param name="oldSlot">The slot number of the old slot</param>
+      /// <param name="newSlot">The slot number of the new slot</param>
+      public void MoveSample(int oldSlot, int newSlot)
+      {
+          AddSample(newSlot, samples[oldSlot]);
+          RemoveSample(oldSlot);
+          samples[newSlot].icon.Margin = new System.Windows.Thickness(newSlot * 101, 0, 0, 0);
+      }
+      /// <summary>
       /// Plays the audio data in the sample at the given slot(denoted by time)
       /// </summary>
       /// <param name="time">The slot number will be played</param>
-      public void play(int time) {
+      public void Play(int time) {
         if (isPlaying && samples[time]!=null) {
-          samples[time].play();
+          samples[time].Play();
         }
       }
       /// <summary>
-      /// Sets the current track to pause or muted so the user can isolate tracks
+      /// Sets the current track to muted so the user can isolate tracks audio
       /// </summary>
       public void MuteTrack()
       {
           isPlaying = !isPlaying;
       }
-
+      /// <summary>
+      /// Adds an array of samples to a track in random positions
+      /// </summary>
+      /// <param name="samps">Array of samples</param>
       public void AddSamplesRandomly(Sample[] samps)
       {
           Random r=new Random();
           foreach (var samp in samps)
           {
-              int i = r.Next(0, 7);
-              bool x=true;
-              while (x)
+              //Check if the samples in the array are of the same type
+              if (samp.type == type)
               {
-                  if (samples[i] == null)
+                  int i = r.Next(0, 7);
+                  bool x = true;
+                  while (x)
                   {
-                      addSample(i, samp);
-                      x = false;
+                      if (samples[i] == null)
+                      {
+                          AddSample(i, samp);
+                          x = false;
+                      }
+                      else i = r.Next(0, 7);
                   }
-                  else i = r.Next(0, 7);
+              }
+              else
+              {
+                  //Don't add it to the track
               }
           }
       }
-      public void drawIcons()
+      /// <summary>
+      /// Add the icons to the trackUI element in appropriate positions
+      /// </summary>
+      public void DrawIcons()
       {
           for (int i = 0; i < trackLength; i++)
           {

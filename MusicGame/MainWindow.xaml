@@ -15,8 +15,8 @@
                 <Canvas Name="tracksUI" Margin="236,0,0,0"></Canvas>
                 <!--<Canvas Name="guitarTrack" Height="100" Width="808" Canvas.Left="236">
                 </Canvas>-->
-                <k:KinectTileButton Background="RoyalBlue" Name="playButton" Click="playButton_Click" Height="76" Canvas.Left="236" TextElement.Foreground="White" Canvas.Top="220" Width="404">Pause</k:KinectTileButton>
-                <k:KinectTileButton Background="RoyalBlue" Click="SolutionButton_Click" TextElement.Foreground="AntiqueWhite" Name="SolutionButton" Height="76" Canvas.Top="220" Width="404" Canvas.Left="640">Solution</k:KinectTileButton>
+                <k:KinectTileButton Background="RoyalBlue" Name="playButton" Click="PlayButton_Click" Height="76" Canvas.Left="236" TextElement.Foreground="White" Canvas.Top="220" Width="404">Pause</k:KinectTileButton>
+                <k:KinectTileButton Background="RoyalBlue" Click="SolutionButton_Click" TextElement.Foreground="AntiqueWhite" Name="SolutionButton" Height="76" Canvas.Top="220" Width="404" Canvas.Left="640">Play Solution</k:KinectTileButton>
             </Canvas>
 
         </k:KinectRegion>

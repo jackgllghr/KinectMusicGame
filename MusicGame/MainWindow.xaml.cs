@@ -33,36 +33,97 @@ namespace MusicGame
     /// </summary>
     public partial class MainWindow : Window
     { 
+        /// <summary>
+        /// Speech Recognition engine used to make commands
+        /// </summary>
         private SpeechRecognitionEngine speechEngine;
 
         Sound applause;
+        /// <summary>
+        /// The current time the game's at(from 0-7)
+        /// </summary>
         int currTime = 0;
+        /// <summary>
+        /// The length of the sequencer
+        /// </summary>
         int len = 8;
+        /// <summary>
+        /// The number of regular tracks in the game
+        /// </summary>
         int numberOfTracks = 2;
+        /// <summary>
+        /// The slot and track that the hand has grabbed a sample from
+        /// </summary>
         int heldSampleSlot, heldSampleTrack;
+        /// <summary>
+        /// How many time the solution track has played in it's current run
+        /// </summary>
+        int solutionPlayCount;
+        /// <summary>
+        /// The speed of the timer, how many times it ticks in milliseconds
+        /// </summary>
         int timerSpeed = 500;
+        /// <summary>
+        /// Tells if the user is gripping at the moment or not
+        /// </summary>
         bool isGripinInteraction = false;
+        /// <summary>
+        /// Tells if all the tracks are paused
+        /// </summary>
+        bool isPlaying = true;
 
+        /// <summary>
+        /// The guitar samples created
+        /// </summary>
         Sample[] guitar=new Sample[4];
+        /// <summary>
+        /// The drum samples in the game
+        /// </summary>
         Sample[] drums = new Sample[6];
        
+        /// <summary>
+        /// The timers for the regular tracks, the solution tracks and for the animation
+        /// </summary>
         Timer time, solutionTimer, animationTimer;
         
+        /// <summary>
+        /// The tracks which samples are inserted, moved or swapped
+        /// </summary>
         Track[] tracks, solutionTracks;
-
-        ImageSource playImg, pauseImg;
+        /// <summary>
+        /// The array of seperate frames in the animation
+        /// </summary>
         ImageSource[] animation;
+        /// <summary>
+        /// The current frame counter in the animation
+        /// </summary>
         int animationCurrentFrame;
 
-        //Rectangle[] slots=new Rectangle[8];
+        /// <summary>
+        /// Chooses a sensor to be used in the game
+        /// </summary>
         private KinectSensorChooser sensorChooser;
-        private InteractionStream _interactionStream;
+        /// <summary>
+        /// The interaction stream which allows the Kinect Toolkits Controls to be used
+        /// </summary>
+        private InteractionStream interactionStream;
+        /// <summary>
+        /// The stream of color data which has the background removed
+        /// </summary>
         private BackgroundRemovedColorStream backgroundRemovedColorStream;
+        /// <summary>
+        /// The bitmap used to add the background removed color data to the UI
+        /// </summary>
         private WriteableBitmap foregroundBitmap;
+        /// <summary>
+        /// The id of the currently tracked user
+        /// </summary>
         private int currentlyTrackedSkeletonId;
         
-        private Skeleton[] _skeletons; //the skeletons 
-        private UserInfo[] _userInfos; //the information about the interactive users
+        /// <summary>
+        /// The skeleton data collected from the Kinect
+        /// </summary>
+        private Skeleton[] skeletons;
         
         /// <summary>
         /// This is where the program begins
@@ -71,28 +132,26 @@ namespace MusicGame
         {
             InitializeComponent();
             Loaded += OnLoaded;
-            
         }
+        /// <summary>
+        /// Loads all the animation, tracks, samples and Kinect objects into the game
+        /// </summary>
         private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
             InitializeKinect();
             
+            //Load the animation timer, get the frames and start displaying it
             animationCurrentFrame = 0;
             animation = GetAnimationFrames();
             animationTimer = new Timer(33);
-            animationTimer.Elapsed += animationTimer_Tick;
+            animationTimer.Elapsed += AnimationTimer_Tick;
             animationTimer.Start();
 
-            KinectRegion.AddHandPointerGripHandler(kRegion, OnHandGrip);
-            KinectRegion.AddHandPointerGripReleaseHandler(kRegion, OnHandGripRelease);
-            KinectRegion.AddQueryInteractionStatusHandler(kRegion, GripHandler);
-            playImg = new BitmapImage(new Uri("Assets/Icons/playButton.png", UriKind.Relative));
-            pauseImg = new BitmapImage(new Uri("Assets/Icons/pauseButton.png", UriKind.Relative));      
-           
-            //backtrack = new Sound("Assets/Sounds/drumloop_fast.wav", "BackingTrack", "drums");
+            //Instantiate the tracks and the solution tracks array
             tracks = new Track[numberOfTracks];
             solutionTracks = new Track[numberOfTracks];
 
+            //create all the samples in the game
             guitar[0] = new Sample("Assets/Sounds/GuitarC.wav", "C-Chord", "guitar");
             guitar[1] = new Sample("Assets/Sounds/GuitarD.wav", "D-Chord", "guitar");
             guitar[2] = new Sample("Assets/Sounds/GuitarG.wav", "G-Chord", "guitar");
@@ -105,46 +164,50 @@ namespace MusicGame
             drums[4] = new Sample("Assets/Sounds/snare.wav", "Snare", "drums");
             drums[5] = new Sample("Assets/Sounds/snare.wav", "Snare", "drums");
 
+            //Add the samples to the tracks at random
             tracks[0] = new Track(len, "guitar",0);
             tracks[0].AddSamplesRandomly(guitar);
 
             tracks[1] = new Track(len, "drums", 1);
             tracks[1].AddSamplesRandomly(drums);
 
+            //Add the samples to the solution tracks in the correct order
             solutionTracks[0] = new Track(len, "guitar",0);
-            solutionTracks[0].addSample(0, guitar[0]);
-            solutionTracks[0].addSample(2, guitar[1]);
-            solutionTracks[0].addSample(4, guitar[2]);
-            solutionTracks[0].addSample(6, guitar[3]);
+            solutionTracks[0].AddSample(0, guitar[0]);
+            solutionTracks[0].AddSample(2, guitar[1]);
+            solutionTracks[0].AddSample(4, guitar[2]);
+            solutionTracks[0].AddSample(6, guitar[3]);
 
             solutionTracks[1] = new Track(len, "drums", 1);
-            solutionTracks[1].addSample(0, drums[0]);
-            solutionTracks[1].addSample(1, drums[1]);
-            solutionTracks[1].addSample(3, drums[4]);
-            solutionTracks[1].addSample(4, drums[2]);
-            solutionTracks[1].addSample(5, drums[3]);
-            solutionTracks[1].addSample(7, drums[5]);
+            solutionTracks[1].AddSample(0, drums[0]);
+            solutionTracks[1].AddSample(1, drums[1]);
+            solutionTracks[1].AddSample(3, drums[4]);
+            solutionTracks[1].AddSample(4, drums[2]);
+            solutionTracks[1].AddSample(5, drums[3]);
+            solutionTracks[1].AddSample(7, drums[5]);
 
+            //Instantiate the solution tracks timer and it's tick event
             solutionTimer = new Timer(timerSpeed);
-            solutionTimer.Elapsed += new ElapsedEventHandler(solutionTimer_Tick);
-            //drawTrack(8);
-            //drawIcons(gt);
+            solutionTimer.Elapsed += new ElapsedEventHandler(SolutionTimer_Tick);
 
+            //Update the UI to draw the icons for each regular non-solution track
             foreach (Track t in tracks)
             {
-                t.drawIcons();
+                t.DrawIcons();
                 tracksUI.Children.Add(t.trackUI);
-                
             }
-            //backtrack.playLooping();
-
-            //Start the timer
+            
+            //Start the regular tracks timer
             time = new Timer(timerSpeed);
-            time.Elapsed += new ElapsedEventHandler(time_Tick);
+            time.Elapsed += new ElapsedEventHandler(Time_Tick);
             time.Start();
         }
-
-        private void animationTimer_Tick(object sender, ElapsedEventArgs e)
+        /// <summary>
+        /// On each tick, increment the animation frame to be shown in the UI
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void AnimationTimer_Tick(object sender, ElapsedEventArgs e)
         {
                 Dispatcher.Invoke((Action)delegate(){
                         Concert.Source = animation[animationCurrentFrame];
@@ -157,7 +220,9 @@ namespace MusicGame
            
         }
         
-
+        /// <summary>
+        /// Update the UI when the user grips/releases their hand
+        /// </summary>
         private void GripHandler(object sender, QueryInteractionStatusEventArgs handPointerEventArgs)
         {
 
@@ -183,84 +248,110 @@ namespace MusicGame
 
             handPointerEventArgs.Handled = true;
         }
+        /// <summary>
+        /// When the user grips, grab the sample in the slot in which the hand pointer is over
+        /// </summary>
         private void OnHandGrip(object sender, HandPointerEventArgs args)
         {
-
-            //args.HandPointer.IsInGripInteraction = true;
-            int slot=checkHandForSlot(args.HandPointer);
+            //Find the track and slot that the user grabbed
+            int slot=CheckHandForSlot(args.HandPointer);
             int trackSelected = CheckHandForTrack(args.HandPointer);
 
-
-            //Start moving the sample
+            //Start moving that sample and update UI with info message
             if (tracks[trackSelected].samples[slot] != null)
             {
                 tracks[trackSelected].samples[slot].isMoving = true;
-                //MessageBox.Show("Slot: " + slot.ToString());
-                //gt.samples[slot].getIcon().Margin = new Thickness(, 0, 0, 0);
                 heldSampleSlot = slot;
                 heldSampleTrack=trackSelected;
                 consoleUI.Text = "Grabbed " + tracks[trackSelected].samples[slot].name + " (slot " + (slot + 1) + ") in " + tracks[trackSelected].type + " track"; 
             }
             
         }
+        /// <summary>
+        /// When the users grip is released, check where the hand is, and swap or move the held sample with the slot the hand is over
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
         private void OnHandGripRelease(object sender, HandPointerEventArgs args)
         {
-            //args.HandPointer.IsInGripInteraction = false;
-            int slot = checkHandForSlot(args.HandPointer);
+            //Find which track and slot the user dropped the sample on 
+            int slot = CheckHandForSlot(args.HandPointer);
             int trackSelected = CheckHandForTrack(args.HandPointer);
 
+            //if dropped on itself, do nothing
             if(slot==heldSampleSlot){
                 //do nothing
                 
             }
-
+            //if dropped in an empty slot, move the sample from the old slot to the empty one and update UI
             else if (heldSampleTrack == trackSelected && tracks[trackSelected].samples[slot] == null && tracks[trackSelected].samples[heldSampleSlot] != null)
             {
                 tracks[trackSelected].samples[heldSampleSlot].isMoving=false;
 
-                tracks[trackSelected].addSample(slot, tracks[trackSelected].samples[heldSampleSlot]);
-                tracks[trackSelected].removeSample(heldSampleSlot);
-                tracks[trackSelected].samples[slot].icon.Margin = new Thickness(slot * 101, 0, 0, 0);
+                //tracks[trackSelected].AddSample(slot, tracks[trackSelected].samples[heldSampleSlot]);
+                //tracks[trackSelected].RemoveSample(heldSampleSlot);
+                //tracks[trackSelected].samples[slot].icon.Margin = new Thickness(slot * 101, 0, 0, 0);
+                tracks[trackSelected].MoveSample(heldSampleSlot, slot);
                 consoleUI.Text = "Dropped " + tracks[trackSelected].samples[slot].name + " (slot " + (slot + 1) + ") in "+tracks[trackSelected].type+" track";
-                if (checkIfWon()) { 
+                if (CheckIfWon()) { 
                     Win(); 
                 }
             }
+            //if dropped in a slot containing a sample, swap those samples and update the UI
             else if (heldSampleTrack == trackSelected && tracks[trackSelected].samples[slot] != null && tracks[trackSelected].samples[heldSampleSlot] != null)
             {
                 tracks[trackSelected].SwapSamples(slot, heldSampleSlot);
                 consoleUI.Text = "Swapped " + tracks[trackSelected].samples[slot].name + " (slot " + (slot + 1) + ") with "
                     +tracks[trackSelected].samples[heldSampleSlot].name+" (slot "+ (heldSampleSlot+1) +") in " + tracks[trackSelected].type + " track";
-                if (checkIfWon())
+                if (CheckIfWon())
                 {
                     Win();
                 }
             }
             
         }
-
+        /// <summary>
+        /// Check the position of the hand on the Y-axis to determine what track it is over
+        /// </summary>
+        /// <param name="handPointer">A Kinect.Toolkit.Controls.HandPointer object</param>
+        /// <returns>The track number</returns>
         private int CheckHandForTrack(HandPointer handPointer)
         {
             double y = handPointer.GetPosition(tracksUI).Y;
             int trackSelected = (int)y / 101;
             return trackSelected;
         }
-        private int checkHandForSlot(HandPointer hand)
+        /// <summary>
+        /// Check the position of the hand on the X-axis to determine what slot it is over
+        /// </summary>
+        /// <param name="hand">A Kinect.Toolkit.Controls.HandPointer object</param>
+        /// <returns>The slot number</returns>
+        private int CheckHandForSlot(HandPointer hand)
         {
-            //Get Slot
             double x = hand.GetPosition(tracksUI).X;
             int slot = (int)x / 101;
             return slot;
         }
-        
+        /// <summary>
+        /// Set up the sensorchooser, create handlers for when a Kinect is changed and handlers for the KinectRegion grip events
+        /// </summary>
         private void InitializeKinect()
         {
-            this.sensorChooser = new KinectSensorChooser();
-            this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
-            this.sensorChooserUi.KinectSensorChooser = this.sensorChooser;
-            this.sensorChooser.Start();
-        }
+            sensorChooser = new KinectSensorChooser();
+            sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
+            sensorChooserUi.KinectSensorChooser = sensorChooser;
+            sensorChooser.Start();
 
+            //Add handlers for the Kinect Grip events
+            KinectRegion.AddHandPointerGripHandler(kRegion, OnHandGrip);
+            KinectRegion.AddHandPointerGripReleaseHandler(kRegion, OnHandGripRelease);
+            KinectRegion.AddQueryInteractionStatusHandler(kRegion, GripHandler);
+     
+        }
+        /// <summary>
+        /// Get the recognizer of the Kinect for speech recogniton
+        /// </summary>
+        /// <returns>Kinects recognizer</returns>
         private static RecognizerInfo GetKinectRecognizer()
         {
             foreach (RecognizerInfo recognizer in SpeechRecognitionEngine.InstalledRecognizers())
@@ -277,6 +368,10 @@ namespace MusicGame
 
             return null;
         }
+        /// <summary>
+        /// Create the speech recogniser, adds grammar and sets up the handlers for when speech is recognized
+        /// </summary>
+        /// <returns>A created SpeechRecognitionEngine with grammar</returns>
         private SpeechRecognitionEngine CreateSpeechRecogniser()
         {
             //set recognizer info
@@ -286,14 +381,14 @@ namespace MusicGame
             SpeechRecognitionEngine sre;
             sre = new SpeechRecognitionEngine(ri.Id);
             
-            //Now we need to add the words we want our program to recognise
+            //We add the words we want our program to recognise
             var grammar = new Choices();
             grammar.Add("play");
             grammar.Add("stop");
             grammar.Add("pause");
             grammar.Add("solution");
-            //grammar.Add("higher");
-            //grammar.Add("lower");
+            grammar.Add("higher");
+            grammar.Add("lower");
 
 
             //set culture - language, country/region
@@ -305,58 +400,58 @@ namespace MusicGame
             sre.LoadGrammar(g);
 
             //Set events for recognizing, hypothesising and rejecting speech
-            sre.SpeechRecognized += SreSpeechRecognized;
-            sre.SpeechHypothesized += SreSpeechHypothesized;
-            sre.SpeechRecognitionRejected += SreSpeechRecognitionRejected;
+            sre.SpeechRecognized += SpeechRecognizedHandler;
             return sre;
             
         }
-        private void SreSpeechRecognitionRejected(object sender, SpeechRecognitionRejectedEventArgs e)
+        /// <summary>
+        /// If the Kinect hears a command it recognises, it executes the command 
+        /// </summary>
+        private void SpeechRecognizedHandler(object sender, SpeechRecognizedEventArgs e)
         {
-            //throw new NotImplementedException();
-        }
-        private void SreSpeechHypothesized(object sender, SpeechHypothesizedEventArgs e)
-        {
-            //throw new NotImplementedException();
-        }
-        private void SreSpeechRecognized(object sender, SpeechRecognizedEventArgs e)
-        {
+            //if the confidence score is too low, ignore
             if (e.Result.Confidence < .4)
             {
-               //RejectSpeech(e.Result);
+                //RejectSpeech(e.Result);
             }
-            switch (e.Result.Text.ToUpperInvariant())
+            else
             {
-                case "PLAY":
-                    playTracks();
-                    break;
-                case "STOP":
-                case "PAUSE":
-                    pauseTracks();
-                    break;
-                case "SOLUTION":
-                    playSolution();
-                    break;
-                //case "HIGHER":
-                //    if (sensorChooser.Kinect.ElevationAngle < 21)
-                //    {
-                //        sensorChooser.Kinect.ElevationAngle += 5;
-                //    }
-                //    break;
-                //case "LOWER":
-                //    if (sensorChooser.Kinect.ElevationAngle > -21)
-                //    {
-                //        sensorChooser.Kinect.ElevationAngle -= 5;
-                //    }
-                //    break;
-                default:
-                    break;
+                switch (e.Result.Text.ToUpperInvariant())
+                {
+                    case "PLAY":
+                        PlayTracks();
+                        break;
+                    case "STOP":
+                    case "PAUSE":
+                        PauseTracks();
+                        break;
+                    case "SOLUTION":
+                        PlaySolution();
+                        break;
+                    case "HIGHER":
+                        if (sensorChooser.Kinect.ElevationAngle < 21)
+                        {
+                            sensorChooser.Kinect.ElevationAngle += 5;
+                        }
+                        break;
+                    case "LOWER":
+                        if (sensorChooser.Kinect.ElevationAngle > -21)
+                        {
+                            sensorChooser.Kinect.ElevationAngle -= 5;
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
-        }     
+        }   
+        /// <summary>
+        /// Begin listening for audio on the Kinect
+        /// </summary>
         private void StartAudioListening() 
         {
             //set sensor audio source to variable
-            var audioSource = this.sensorChooser.Kinect.AudioSource;
+            var audioSource = sensorChooser.Kinect.AudioSource;
             //Set the beam angle mode - the direction the audio beam is pointing
             //we want it to be set to adaptive
             audioSource.BeamAngleMode = BeamAngleMode.Adaptive;
@@ -368,10 +463,14 @@ namespace MusicGame
             //make sure the recognizer does not stop after completing     
             speechEngine.RecognizeAsync(RecognizeMode.Multiple);
             //reduce background and ambient noise for better accuracy
-            this.sensorChooser.Kinect.AudioSource.EchoCancellationMode = EchoCancellationMode.None;
-            this.sensorChooser.Kinect.AudioSource.AutomaticGainControlEnabled = false;
+            sensorChooser.Kinect.AudioSource.EchoCancellationMode = EchoCancellationMode.None;
+            sensorChooser.Kinect.AudioSource.AutomaticGainControlEnabled = false;
         }
-
+        /// <summary>
+        /// When a Kinect sensor is plugged or unplugged, enable/disable sensors as necessary
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
         private void SensorChooserOnKinectChanged(object sender, KinectChangedEventArgs args)
         {
          bool error = false;
@@ -379,19 +478,17 @@ namespace MusicGame
          {
              try
              {
+                 //Disable all streams from the old sensor
                  args.OldSensor.DepthStream.Range = DepthRange.Default;
                  args.OldSensor.SkeletonStream.EnableTrackingInNearRange = false;
                  args.OldSensor.DepthStream.Disable();
                  args.OldSensor.SkeletonStream.Disable();
                  args.OldSensor.ColorStream.Disable();
-
-                 // Create the background removal stream to process the data and remove background, and initialize it.
-                 if (null != this.backgroundRemovedColorStream)
-                 {
-                     
-                     this.backgroundRemovedColorStream.BackgroundRemovedFrameReady -= this.BackgroundRemovedFrameReadyHandler;
-                     this.backgroundRemovedColorStream.Dispose();
-                     this.backgroundRemovedColorStream = null;
+                 if (null != backgroundRemovedColorStream)
+                 {   
+                     backgroundRemovedColorStream.BackgroundRemovedFrameReady -= this.BackgroundRemovedFrameReadyHandler;
+                     backgroundRemovedColorStream.Dispose();
+                     backgroundRemovedColorStream = null;
                  }
             }
             catch (InvalidOperationException)
@@ -407,8 +504,8 @@ namespace MusicGame
         {
             try
             {
-
-                this.speechEngine = CreateSpeechRecogniser();
+                //When a new sensor is plugged in, enable all the streams and set the angle to default
+                speechEngine = CreateSpeechRecogniser();
                 args.NewSensor.DepthStream.Enable();
                 args.NewSensor.SkeletonStream.Enable();
                 args.NewSensor.ColorStream.Enable();
@@ -419,126 +516,49 @@ namespace MusicGame
 
                 consoleUI.Text = "Raise your hand and grab a sample to start!";
                 // Allocate space to put the depth, color, and skeleton data we'll receive
-                if (null == this._skeletons)
+                if (null == skeletons)
                 {
-                    _skeletons = new Skeleton[args.NewSensor.SkeletonStream.FrameSkeletonArrayLength];
-                    _userInfos = new UserInfo[InteractionFrame.UserInfoArrayLength];
-                    _interactionStream = new InteractionStream(args.NewSensor, new DummyInteractionClient());
-                    //_interactionStream.InteractionFrameReady += InteractionStreamOnInteractionFrameReady;
-
-                    //args.NewSensor.DepthFrameReady += SensorOnDepthFrameReady;
-                    //args.NewSensor.SkeletonFrameReady += SensorOnSkeletonFrameReady;
-                    //args.NewSensor.ColorFrameReady += SensorOnColorImageFrameReady;
+                    skeletons = new Skeleton[args.NewSensor.SkeletonStream.FrameSkeletonArrayLength];
+                    interactionStream = new InteractionStream(args.NewSensor, new DummyInteractionClient());
+                   
                     args.NewSensor.AllFramesReady += SensorAllFramesReady;
                     backgroundRemovedColorStream.BackgroundRemovedFrameReady += BackgroundRemovedFrameReadyHandler;
                 }
-
-                // Add an event handler to be called when the background removed color frame is ready, so that we can
-                // composite the image and output to the app
-                
-                // Add an event handler to be called whenever there is new depth frame data
-                //args.NewSensor.AllFramesReady += this.SensorAllFramesReady;
-
+                //Try and enable near mode
                 try
                 {
-                    //args.NewSensor.DepthStream.Range = DepthRange.Near;
-                    //args.NewSensor.SkeletonStream.EnableTrackingInNearRange = true;
-                    //args.NewSensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
-                    args.NewSensor.DepthStream.Range = DepthRange.Default;
-                    args.NewSensor.SkeletonStream.EnableTrackingInNearRange = false;
+                    args.NewSensor.DepthStream.Range = DepthRange.Near;
+                    args.NewSensor.SkeletonStream.EnableTrackingInNearRange = true;
+                    args.NewSensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                    
                 }
                 catch (InvalidOperationException)
                 {
-                    // Non Kinect for Windows devices do not support Near mode, so reset back to default mode.
+                    //Kinect for Xbox 360 devices do not support Near mode, so reset back to default mode.
                     args.NewSensor.DepthStream.Range = DepthRange.Default;
                     args.NewSensor.SkeletonStream.EnableTrackingInNearRange = false;
-                    error = true;
+              
                 }
             }
             catch (InvalidOperationException)
             {
                 error = true;
-                // KinectSensor might enter an invalid state while enabling/disabling streams or stream features.
-                // E.g.: sensor might be abruptly unplugged.
             }
             if (!error)
+                //If nothing fails assign the newSensor and start listening for audio
                 kRegion.KinectSensor = args.NewSensor;
                 StartAudioListening();
         }
     }
-   
-//        private Dictionary<int, InteractionHandEventType> _lastLeftHandEvents = new Dictionary<int, InteractionHandEventType>();
- //       private Dictionary<int, InteractionHandEventType> _lastRightHandEvents = new Dictionary<int, InteractionHandEventType>();
-        //private void InteractionStreamOnInteractionFrameReady(object sender, InteractionFrameReadyEventArgs args)
-        //{
-        //    using (var iaf = args.OpenInteractionFrame()) //dispose as soon as possible
-        //    {
-        //        if (iaf == null)
-        //            return;
-
-        //        iaf.CopyInteractionDataTo(_userInfos);
-        //    }
-        //    StringBuilder dump = new StringBuilder();
-
-        //    var hasUser = false;
-        //    foreach (var userInfo in _userInfos)
-        //    {
-        //        var userID = userInfo.SkeletonTrackingId;
-        //        if (userID == 0)
-        //            continue;
-
-        //        hasUser = true;
-        //        dump.AppendLine("User ID = " + userID);
-        //        dump.AppendLine("  Hands: ");
-        //        var hands = userInfo.HandPointers;
-        //        if (hands.Count == 0)
-        //            dump.AppendLine("    No hands");
-        //        else
-        //        {
-        //            foreach (var hand in hands)
-        //            {
-        //                var lastHandEvents = hand.HandType == InteractionHandType.Left
-        //                                         ? _lastLeftHandEvents
-        //                                         : _lastRightHandEvents;
-
-        //                if (hand.HandEventType != InteractionHandEventType.None)
-        //                    lastHandEvents[userID] = hand.HandEventType;
-
-        //                var lastHandEvent = lastHandEvents.ContainsKey(userID)
-        //                                        ? lastHandEvents[userID]
-        //                                        : InteractionHandEventType.None;
-                        
-        //                dump.AppendLine();
-        //                dump.AppendLine("    HandType: " + hand.HandType);
-        //                dump.AppendLine("    HandEventType: " + hand.HandEventType);
-        //                dump.AppendLine("    LastHandEventType: " + lastHandEvent);
-        //                dump.AppendLine("    IsActive: " + hand.IsActive);
-        //                dump.AppendLine("    IsPrimaryForUser: " + hand.IsPrimaryForUser);
-        //                dump.AppendLine("    IsInteractive: " + hand.IsInteractive);
-        //                dump.AppendLine("    PressExtent: " + hand.PressExtent.ToString("N3"));
-        //                dump.AppendLine("    IsPressed: " + hand.IsPressed);
-        //                dump.AppendLine("    IsTracked: " + hand.IsTracked);
-        //                dump.AppendLine("    X: " + hand.X.ToString("N3"));
-        //                dump.AppendLine("    Y: " + hand.Y.ToString("N3"));
-        //                dump.AppendLine("    RawX: " + hand.RawX.ToString("N3"));
-        //                dump.AppendLine("    RawY: " + hand.RawY.ToString("N3"));
-        //                dump.AppendLine("    RawZ: " + hand.RawZ.ToString("N3"));
-                        
-        //            }
-        //        }
-
-        //        consoleUI.Text = dump.ToString();
-        //    }
-
-        //    if (!hasUser)
-        //        consoleUI.Text = "No user detected.";
-
-        //}
-
+        /// <summary>
+        /// When depth, color and skeleton frames are ready, process each frame, which will in turn fire the BackgroundRemovedFrameReadyHandler
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
         private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs args)
         {
             // in the middle of shutting down, or lingering events from previous sensor, do nothing here.
-            if (null == this.sensorChooser || null == this.sensorChooser.Kinect || this.sensorChooser.Kinect != sender)
+            if (null == sensorChooser || null == sensorChooser.Kinect || sensorChooser.Kinect != sender)
             {
                 return;
             }
@@ -549,7 +569,7 @@ namespace MusicGame
                 {
                     if (null != depthFrame)
                     {
-                        _interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
+                        interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
                         backgroundRemovedColorStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
                    
                     }
@@ -559,7 +579,7 @@ namespace MusicGame
                 {
                     if (null != colorFrame)
                     {
-                        this.backgroundRemovedColorStream.ProcessColor(colorFrame.GetRawPixelData(), colorFrame.Timestamp);
+                        backgroundRemovedColorStream.ProcessColor(colorFrame.GetRawPixelData(), colorFrame.Timestamp);
                     }
                 }
 
@@ -567,10 +587,10 @@ namespace MusicGame
                 {
                     if (null != skeletonFrame)
                     {
-                        skeletonFrame.CopySkeletonDataTo(_skeletons);
-                        var accelerometerReading = this.sensorChooser.Kinect.AccelerometerGetCurrentReading();
-                        _interactionStream.ProcessSkeleton(_skeletons, accelerometerReading, skeletonFrame.Timestamp);
-                        backgroundRemovedColorStream.ProcessSkeleton(_skeletons, skeletonFrame.Timestamp);
+                        skeletonFrame.CopySkeletonDataTo(skeletons);
+                        var accelerometerReading = sensorChooser.Kinect.AccelerometerGetCurrentReading();
+                        interactionStream.ProcessSkeleton(skeletons, accelerometerReading, skeletonFrame.Timestamp);
+                        backgroundRemovedColorStream.ProcessSkeleton(skeletons, skeletonFrame.Timestamp);
                     }
                 }
                 this.ChooseSkeleton();
@@ -580,37 +600,43 @@ namespace MusicGame
                 Debug.WriteLine(ex.ToString());
             }
         }
+        /// <summary>
+        /// When the background removed frame is ready, create a Bitmap and add it to the UI
+        /// </summary>
         private void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs args)
         {
             using (var backgroundRemovedFrame = args.OpenBackgroundRemovedColorFrame())
             {
                 if (backgroundRemovedFrame != null)
                 {
-                    if (null == this.foregroundBitmap || this.foregroundBitmap.PixelWidth != backgroundRemovedFrame.Width
-                        || this.foregroundBitmap.PixelHeight != backgroundRemovedFrame.Height)
+                    if (null == foregroundBitmap || foregroundBitmap.PixelWidth != backgroundRemovedFrame.Width
+                        || foregroundBitmap.PixelHeight != backgroundRemovedFrame.Height)
                     {
-                        this.foregroundBitmap = new WriteableBitmap(backgroundRemovedFrame.Width, backgroundRemovedFrame.Height, 96.0, 96.0, PixelFormats.Bgra32, null);
+                        foregroundBitmap = new WriteableBitmap(backgroundRemovedFrame.Width, backgroundRemovedFrame.Height, 96.0, 96.0, PixelFormats.Bgra32, null);
 
-                        // Set the image we display to point to the bitmap where we'll put the image data
-                        this.MaskedColor.Source = this.foregroundBitmap;
+                        // Set the image we display to point to the bitmap which contains the background removed image data
+                        MaskedColor.Source = foregroundBitmap;
                     }
 
                     // Write the pixel data into our bitmap
-                    this.foregroundBitmap.WritePixels(
-                        new Int32Rect(0, 0, this.foregroundBitmap.PixelWidth, this.foregroundBitmap.PixelHeight),
+                    foregroundBitmap.WritePixels(
+                        new Int32Rect(0, 0, foregroundBitmap.PixelWidth, foregroundBitmap.PixelHeight),
                         backgroundRemovedFrame.GetRawPixelData(),
-                        this.foregroundBitmap.PixelWidth * sizeof(int),
+                        foregroundBitmap.PixelWidth * sizeof(int),
                         0);
                 }
             }
         }
+        /// <summary>
+        /// Choose which skeleton in the scene to track based on how close they are
+        /// </summary>
         private void ChooseSkeleton()
         {
             var isTrackedSkeltonVisible = false;
             var nearestDistance = float.MaxValue;
             var nearestSkeleton = 0;
 
-            foreach (var skel in this._skeletons)
+            foreach (var skel in this.skeletons)
             {
                 if (null == skel)
                 {
@@ -640,33 +666,17 @@ namespace MusicGame
                 this.backgroundRemovedColorStream.SetTrackedPlayer(nearestSkeleton);
                 this.currentlyTrackedSkeletonId = nearestSkeleton;
             }
-        }
-
-        //private void drawTrack(Track t)
-        //{
-        //    for (int i = 0; i < len; i++)
-        //    {
-        //        slots[i] = new Rectangle
-        //        {
-        //            Width = 100,
-        //            Height = 100,
-        //            Margin = new System.Windows.Thickness(101 * i, 0, 0, 0),
-        //            Fill = Brushes.PaleGreen,
-        //            Name="slot"+(i+1)
-        //        };
-               
-        //        guitarTrack.Children.Add(slots[i]);
-
-        //    }
-        //}
-        
-        public void time_Tick(object sender, EventArgs e)
+        }  
+        /// <summary>
+        /// On each tick of the regular track timer, the sample at the current time is played and the UI is updated
+        /// </summary>
+        public void Time_Tick(object sender, EventArgs e)
         {     
             //Reset current Time if it runs over the track
             if (currTime == len) {
                 currTime = 0;
             }
-            //Update the UI on each tick
+            //Update the UI to show which samples are being playing at the current time
             Dispatcher.Invoke((Action)delegate() {
                 foreach (Track t in tracks)
                 {
@@ -678,26 +688,38 @@ namespace MusicGame
                     else t.slots[currTime - 1].Fill = Brushes.PaleGreen;
                 }
             });
+            //Play the sample at that time
             foreach (Track t in tracks)
             {
-                t.play(currTime);
+                t.Play(currTime);
             }
             currTime++;
         }
-       
-        private bool checkIfWon()
+        /// <summary>
+        /// Loops through all the tracks and compares each track with it's respective solution track
+        /// </summary>
+        /// <returns>True if the user has won, otherwise false</returns>
+        private bool CheckIfWon()
         {
+            //loop through all the tracks
             for (int i = 0; i < numberOfTracks;i++ )
             {
-                if (compareTracks(tracks[i], solutionTracks[i]))
+                if (CompareTracks(tracks[i], solutionTracks[i]))
                 {
-                    //match, do nothing
+                    //tracks are a match, do nothing, check the rest
                 }
                 else return false;
             }
+            //if all are matched, return true
             return true;
         }
-        private bool compareTracks(Track t1, Track t2){
+        /// <summary>
+        /// Compares two track by comparing each sample against its respective sample in the opposite track. Compares sample using their name as an identifier
+        /// </summary>
+        /// <param name="t1">First track to be compared, a regular track</param>
+        /// <param name="t2">Second track to be compared, a solution track</param>
+        /// <returns></returns>
+        private bool CompareTracks(Track t1, Track t2){
             for (int i = 0; i < len; i++)
             {
                 //If both slots are empty, ignore
@@ -717,71 +739,69 @@ namespace MusicGame
             }
             return true;
         }
-        private void playButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Event that fires when the play button is hit. Plays or pauses all the regular tracks depending on the current state
+        /// </summary>
+        private void PlayButton_Click(object sender, RoutedEventArgs e)
         {
-            if (tracks[0].isPlaying)
+            if (isPlaying)
             {
-                pauseTracks();
+                PauseTracks();
+                isPlaying = false;
             }
             else
             {
-                playTracks();
+                PlayTracks();
+                isPlaying = true;
             }
         }
-        private void playTracks(){
-            try
-            {
+        /// <summary>
+        /// Plays the regular tracks
+        /// </summary>
+        private void PlayTracks(){
+            //start the timer for regular tracks to get them playing
+            time.Start();
 
-                time.Start();
-                foreach (Track t in tracks)
-                {
-                    t.isPlaying = true;
-                }
-                
-                Dispatcher.Invoke((Action)delegate()
-                {
-                    //playButtonImage.Source = pauseImg;
-                    playButton.Content = "Pause";
-                });
-            }
-            catch (Exception e)
+            //Update UI of the play button
+            Dispatcher.Invoke((Action)delegate()
             {
-                MessageBox.Show(e.ToString());
-                throw;
-            }
+                playButton.Content = "Pause";
+            });
+            
         }
-        private void pauseTracks() {
-            try
+        /// <summary>
+        /// Pauses the regular tracks 
+        /// </summary>
+        private void PauseTracks() {
+         
+            //Stop the timer for regular tracks to stop them playing
+            time.Stop();
+
+            //Update UI on the play button
+            Dispatcher.Invoke((Action)delegate()
             {
-                time.Stop();
-                foreach (Track t in tracks)
-                {
-                    t.isPlaying = false;
-                }
-                Dispatcher.Invoke((Action)delegate()
-                {
-                    //playButtonImage.Source = playImg;
-                    playButton.Content = "Play";
-                });
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.ToString());
-                throw;
-            }
+                playButton.Content = "Play";
+            });
+            
         }
-        private void solutionTimer_Tick(object sender, ElapsedEventArgs e)
+        /// <summary>
+        /// Event that happens each time the solution timer ticks. Plays a sample from the solution track and updates the UI
+        /// </summary>
+        private void SolutionTimer_Tick(object sender, ElapsedEventArgs e)
         {
+            //if it's played the full solution, stop playing it and return to playing the regular tracks
             if (currTime == len)
             {
-                stopSolution();
+                currTime = 0;
+                solutionPlayCount++;
             }
-            else
-            {
+            if(solutionPlayCount<2){
+                //Loop through the solution tracks and play them
                 for(int i=0;i<numberOfTracks;i++)
                 {
-                    solutionTracks[i].play(currTime);
-                    //Update UI
+                    solutionTracks[i].Play(currTime);
+
+                    //Update UI to show the current position of the solution timer
                     Dispatcher.Invoke((Action)delegate()
                     {
                         tracks[i].slots[currTime].Fill = Brushes.RoyalBlue;
@@ -795,34 +815,68 @@ namespace MusicGame
                 }
                 currTime++;
             }
+            else 
+            { 
+                StopSolution(); 
+            }
+            
         }
+        /// <summary>
+        /// Event fired when the solution button is clicked. Plays the solution
+        /// </summary>
         private void SolutionButton_Click(object sender, RoutedEventArgs e)
         {
-            playSolution();
+            Dispatcher.Invoke((Action)delegate {
+                SolutionButton.Content = "The solution is playing";
+                consoleUI.Text = "The solution track is playing, listen carefully to the sounds";
+            });
+           PlaySolution();
         }
-        private void playSolution() {
+        /// <summary>
+        /// Plays the solution. Starts the solution timer and pauses all the other tracks 
+        /// </summary>
+        private void PlaySolution() {
             Dispatcher.Invoke((Action)delegate() {
-                foreach (Track t in tracks) {
-                    t.slots[currTime].Fill = Brushes.PaleGreen;
+                if (currTime < len)
+                {
+                    foreach (Track t in tracks)
+                    {
+                        t.slots[currTime].Fill = Brushes.PaleGreen;
+                    }
                 }
             });
             currTime = 0;
-            pauseTracks();
+            PauseTracks();
             solutionTimer.Start();
         }
-        private void stopSolution() {
-            playTracks();
-            currTime = 0;
+        /// <summary>
+        /// Stops the solution. Stops the solution timer and sets the regular tracks to playing
+        /// </summary>
+        private void StopSolution() {
             solutionTimer.Stop();
+            currTime = 0;
+            solutionPlayCount = 0;
+            Dispatcher.Invoke((Action)delegate
+            {
+                SolutionButton.Content = "Play Solution";
+                consoleUI.Text = "Now try and rearrange the samples to match that solution";
+            });
+               
+            PlayTracks();
         }
+        /// <summary>
+        /// Activates the win state. Updates the UI with a congratulatory message and starts an audience applause playing
+        /// </summary>
         private void Win() {
             time.Stop();
-            //backtrack.stop();
             consoleUI.Text = "Congrats you won!!";
-            //pauseTracks();
             applause = new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
             applause.playLooping();
         }
+        /// <summary>
+        /// Loads all the animation frames into an array
+        /// </summary>
+        /// <returns>All animation frames as an array of ImageSources</returns>
         private ImageSource[] GetAnimationFrames()
         {
             try

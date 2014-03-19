@@ -40,12 +40,12 @@ namespace MusicGame
             name = soundName;
             type = soundType;
             isMoving = false;
-            setIcon();
+            SetIcon();
         }
         /// <summary>
         /// This method plays the audio file in the sample
         /// </summary>
-        public void play()
+        public void Play()
         {
                 player.controls.play();
         }
@@ -54,7 +54,7 @@ namespace MusicGame
         /// This sets the image that the sample will display depending on it's type
         /// If the type name is "guitar", the image will be a guitar icon, etc
         /// </summary>
-        void setIcon()
+        void SetIcon()
         {
             if (type.ToLower() == "guitar")
             {
