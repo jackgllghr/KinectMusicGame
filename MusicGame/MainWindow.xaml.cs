@@ -79,13 +79,11 @@ namespace MusicGame
         /// <summary>
         /// The drum samples in the game
         /// </summary>
-        Sample[] drums = new Sample[6];
-       
+        Sample[] drums = new Sample[6];  
         /// <summary>
         /// The timers for the regular tracks, the solution tracks and for the animation
         /// </summary>
-        Timer time, solutionTimer, animationTimer;
-        
+        Timer time, solutionTimer, animationTimer;     
         /// <summary>
         /// The tracks which samples are inserted, moved or swapped
         /// </summary>
@@ -98,15 +96,10 @@ namespace MusicGame
         /// The current frame counter in the animation
         /// </summary>
         int animationCurrentFrame;
-
         /// <summary>
         /// Chooses a sensor to be used in the game
         /// </summary>
         private KinectSensorChooser sensorChooser;
-        /// <summary>
-        /// The interaction stream which allows the Kinect Toolkits Controls to be used
-        /// </summary>
-        private InteractionStream interactionStream;
         /// <summary>
         /// The stream of color data which has the background removed
         /// </summary>
@@ -519,7 +512,6 @@ namespace MusicGame
                 if (null == skeletons)
                 {
                     skeletons = new Skeleton[args.NewSensor.SkeletonStream.FrameSkeletonArrayLength];
-                    interactionStream = new InteractionStream(args.NewSensor, new DummyInteractionClient());
                    
                     args.NewSensor.AllFramesReady += SensorAllFramesReady;
                     backgroundRemovedColorStream.BackgroundRemovedFrameReady += BackgroundRemovedFrameReadyHandler;
@@ -569,7 +561,6 @@ namespace MusicGame
                 {
                     if (null != depthFrame)
                     {
-                        interactionStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
                         backgroundRemovedColorStream.ProcessDepth(depthFrame.GetRawPixelData(), depthFrame.Timestamp);
                    
                     }
@@ -588,8 +579,6 @@ namespace MusicGame
                     if (null != skeletonFrame)
                     {
                         skeletonFrame.CopySkeletonDataTo(skeletons);
-                        var accelerometerReading = sensorChooser.Kinect.AccelerometerGetCurrentReading();
-                        interactionStream.ProcessSkeleton(skeletons, accelerometerReading, skeletonFrame.Timestamp);
                         backgroundRemovedColorStream.ProcessSkeleton(skeletons, skeletonFrame.Timestamp);
                     }
                 }
