@@ -12,7 +12,7 @@ namespace MusicGame
     /// <summary>
     /// Contains all data and UI elements associated with a track in the game
     /// </summary>
-  class Track {
+  public class Track {
       /// <summary>
       /// Boolean that sets there the track is playing/muted
       /// </summary>

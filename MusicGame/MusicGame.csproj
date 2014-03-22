@@ -100,7 +100,6 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Sample.cs" />
-    <Compile Include="Sound.cs" />
     <Compile Include="Track.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

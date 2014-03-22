@@ -38,7 +38,7 @@ namespace MusicGame
         /// </summary>
         private SpeechRecognitionEngine speechEngine;
 
-        Sound applause;
+        Sample applause;
         /// <summary>
         /// The current time the game's at(from 0-7)
         /// </summary>
@@ -708,25 +708,30 @@ namespace MusicGame
         /// <param name="t1">First track to be compared, a regular track</param>
         /// <param name="t2">Second track to be compared, a solution track</param>
         /// <returns></returns>
-        private bool CompareTracks(Track t1, Track t2){
-            for (int i = 0; i < len; i++)
+        public bool CompareTracks(Track t1, Track t2){
+            if (t1.trackLength == t2.trackLength)
             {
-                //If both slots are empty, ignore
-                if (t1.samples[i] == null && t2.samples[i] == null) {}
-                //If one is empty, not a match
-                else if((t1.samples[i]!=null && t2.samples[i]==null)||(t1.samples[i]==null && t2.samples[i]!=null)){
-                    return false;
-                }
-                //If both are filled, compare them
-                else if (t1.samples[i] != null && t2.samples[i] != null)
+                for (int i = 0; i < len; i++)
                 {
-                    //If they are the same sound, move on to the next
-                    if (t1.samples[i].name.Equals(t2.samples[i].name)) { }
+                    //If both slots are empty, ignore
+                    if (t1.samples[i] == null && t2.samples[i] == null) { }
+                    //If one is empty, not a match
+                    else if ((t1.samples[i] != null && t2.samples[i] == null) || (t1.samples[i] == null && t2.samples[i] != null))
+                    {
+                        return false;
+                    }
+                    //If both are filled, compare them
+                    else if (t1.samples[i] != null && t2.samples[i] != null)
+                    {
+                        //If they are the same sound, move on to the next
+                        if (t1.samples[i].name.Equals(t2.samples[i].name)) { }
+                        else return false;
+                    }
                     else return false;
                 }
-                else return false;
+                return true;
             }
-            return true;
+            else return false;
         }
         /// <summary>
         /// Event that fires when the play button is hit. Plays or pauses all the regular tracks depending on the current state
@@ -859,8 +864,8 @@ namespace MusicGame
         private void Win() {
             time.Stop();
             consoleUI.Text = "Congrats you won!!";
-            applause = new Sound("Assets/Sounds/applause.wav", "Applause", "cheer");
-            applause.playLooping();
+            applause = new Sample("Assets/Sounds/applause.wav", "Applause", "cheer");
+            applause.Play();
         }
         /// <summary>
         /// Loads all the animation frames into an array
