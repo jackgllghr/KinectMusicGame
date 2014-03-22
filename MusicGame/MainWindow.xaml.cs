@@ -36,7 +36,7 @@ namespace MusicGame
         /// <summary>
         /// Speech Recognition engine used to make commands
         /// </summary>
-        private SpeechRecognitionEngine speechEngine;
+        public SpeechRecognitionEngine speechEngine;
 
         Sample applause;
         /// <summary>
@@ -99,24 +99,24 @@ namespace MusicGame
         /// <summary>
         /// Chooses a sensor to be used in the game
         /// </summary>
-        private KinectSensorChooser sensorChooser;
+        public KinectSensorChooser sensorChooser;
         /// <summary>
         /// The stream of color data which has the background removed
         /// </summary>
-        private BackgroundRemovedColorStream backgroundRemovedColorStream;
+        public BackgroundRemovedColorStream backgroundRemovedColorStream;
         /// <summary>
         /// The bitmap used to add the background removed color data to the UI
         /// </summary>
-        private WriteableBitmap foregroundBitmap;
+        public WriteableBitmap foregroundBitmap;
         /// <summary>
         /// The id of the currently tracked user
         /// </summary>
-        private int currentlyTrackedSkeletonId;
+        public int currentlyTrackedSkeletonId;
         
         /// <summary>
         /// The skeleton data collected from the Kinect
         /// </summary>
-        private Skeleton[] skeletons;
+        public Skeleton[] skeletons;
         
         /// <summary>
         /// This is where the program begins
@@ -129,7 +129,7 @@ namespace MusicGame
         /// <summary>
         /// Loads all the animation, tracks, samples and Kinect objects into the game
         /// </summary>
-        private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
+        public void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
             InitializeKinect();
             
@@ -200,7 +200,7 @@ namespace MusicGame
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void AnimationTimer_Tick(object sender, ElapsedEventArgs e)
+        public void AnimationTimer_Tick(object sender, ElapsedEventArgs e)
         {
                 Dispatcher.Invoke((Action)delegate(){
                         Concert.Source = animation[animationCurrentFrame];
@@ -216,7 +216,7 @@ namespace MusicGame
         /// <summary>
         /// Update the UI when the user grips/releases their hand
         /// </summary>
-        private void GripHandler(object sender, QueryInteractionStatusEventArgs handPointerEventArgs)
+        public void GripHandler(object sender, QueryInteractionStatusEventArgs handPointerEventArgs)
         {
 
             //If a grip detected change the cursor image to grip
@@ -244,7 +244,7 @@ namespace MusicGame
         /// <summary>
         /// When the user grips, grab the sample in the slot in which the hand pointer is over
         /// </summary>
-        private void OnHandGrip(object sender, HandPointerEventArgs args)
+        public void OnHandGrip(object sender, HandPointerEventArgs args)
         {
             //Find the track and slot that the user grabbed
             int slot=CheckHandForSlot(args.HandPointer);
@@ -265,7 +265,7 @@ namespace MusicGame
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
-        private void OnHandGripRelease(object sender, HandPointerEventArgs args)
+        public void OnHandGripRelease(object sender, HandPointerEventArgs args)
         {
             //Find which track and slot the user dropped the sample on 
             int slot = CheckHandForSlot(args.HandPointer);
@@ -308,7 +308,7 @@ namespace MusicGame
         /// </summary>
         /// <param name="handPointer">A Kinect.Toolkit.Controls.HandPointer object</param>
         /// <returns>The track number</returns>
-        private int CheckHandForTrack(HandPointer handPointer)
+        public int CheckHandForTrack(HandPointer handPointer)
         {
             double y = handPointer.GetPosition(tracksUI).Y;
             int trackSelected = (int)y / 101;
@@ -319,7 +319,7 @@ namespace MusicGame
         /// </summary>
         /// <param name="hand">A Kinect.Toolkit.Controls.HandPointer object</param>
         /// <returns>The slot number</returns>
-        private int CheckHandForSlot(HandPointer hand)
+        public int CheckHandForSlot(HandPointer hand)
         {
             double x = hand.GetPosition(tracksUI).X;
             int slot = (int)x / 101;
@@ -328,7 +328,7 @@ namespace MusicGame
         /// <summary>
         /// Set up the sensorchooser, create handlers for when a Kinect is changed and handlers for the KinectRegion grip events
         /// </summary>
-        private void InitializeKinect()
+        public void InitializeKinect()
         {
             sensorChooser = new KinectSensorChooser();
             sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
@@ -345,7 +345,7 @@ namespace MusicGame
         /// Get the recognizer of the Kinect for speech recogniton
         /// </summary>
         /// <returns>Kinects recognizer</returns>
-        private static RecognizerInfo GetKinectRecognizer()
+        public static RecognizerInfo GetKinectRecognizer()
         {
             foreach (RecognizerInfo recognizer in SpeechRecognitionEngine.InstalledRecognizers())
             {
@@ -365,7 +365,7 @@ namespace MusicGame
         /// Create the speech recogniser, adds grammar and sets up the handlers for when speech is recognized
         /// </summary>
         /// <returns>A created SpeechRecognitionEngine with grammar</returns>
-        private SpeechRecognitionEngine CreateSpeechRecogniser()
+        public SpeechRecognitionEngine CreateSpeechRecogniser()
         {
             //set recognizer info
             RecognizerInfo ri = GetKinectRecognizer();
@@ -400,7 +400,7 @@ namespace MusicGame
         /// <summary>
         /// If the Kinect hears a command it recognises, it executes the command 
         /// </summary>
-        private void SpeechRecognizedHandler(object sender, SpeechRecognizedEventArgs e)
+        public void SpeechRecognizedHandler(object sender, SpeechRecognizedEventArgs e)
         {
             //if the confidence score is too low, ignore
             if (e.Result.Confidence < .4)
@@ -441,7 +441,7 @@ namespace MusicGame
         /// <summary>
         /// Begin listening for audio on the Kinect
         /// </summary>
-        private void StartAudioListening() 
+        public void StartAudioListening() 
         {
             //set sensor audio source to variable
             var audioSource = sensorChooser.Kinect.AudioSource;
@@ -464,7 +464,7 @@ namespace MusicGame
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
-        private void SensorChooserOnKinectChanged(object sender, KinectChangedEventArgs args)
+        public void SensorChooserOnKinectChanged(object sender, KinectChangedEventArgs args)
         {
          bool error = false;
          if (args.OldSensor != null)
@@ -547,7 +547,7 @@ namespace MusicGame
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
-        private void SensorAllFramesReady(object sender, AllFramesReadyEventArgs args)
+        public void SensorAllFramesReady(object sender, AllFramesReadyEventArgs args)
         {
             // in the middle of shutting down, or lingering events from previous sensor, do nothing here.
             if (null == sensorChooser || null == sensorChooser.Kinect || sensorChooser.Kinect != sender)
@@ -592,7 +592,7 @@ namespace MusicGame
         /// <summary>
         /// When the background removed frame is ready, create a Bitmap and add it to the UI
         /// </summary>
-        private void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs args)
+        public void BackgroundRemovedFrameReadyHandler(object sender, BackgroundRemovedColorFrameReadyEventArgs args)
         {
             using (var backgroundRemovedFrame = args.OpenBackgroundRemovedColorFrame())
             {
@@ -619,7 +619,7 @@ namespace MusicGame
         /// <summary>
         /// Choose which skeleton in the scene to track based on how close they are
         /// </summary>
-        private void ChooseSkeleton()
+        public void ChooseSkeleton()
         {
             var isTrackedSkeltonVisible = false;
             var nearestDistance = float.MaxValue;
@@ -688,7 +688,7 @@ namespace MusicGame
         /// Loops through all the tracks and compares each track with it's respective solution track
         /// </summary>
         /// <returns>True if the user has won, otherwise false</returns>
-        private bool CheckIfWon()
+        public bool CheckIfWon()
         {
             //loop through all the tracks
             for (int i = 0; i < numberOfTracks;i++ )
@@ -736,7 +736,7 @@ namespace MusicGame
         /// <summary>
         /// Event that fires when the play button is hit. Plays or pauses all the regular tracks depending on the current state
         /// </summary>
-        private void PlayButton_Click(object sender, RoutedEventArgs e)
+        public void PlayButton_Click(object sender, RoutedEventArgs e)
         {
             if (isPlaying)
             {
@@ -752,7 +752,7 @@ namespace MusicGame
         /// <summary>
         /// Plays the regular tracks
         /// </summary>
-        private void PlayTracks(){
+        public void PlayTracks(){
             //start the timer for regular tracks to get them playing
             time.Start();
 
@@ -766,7 +766,7 @@ namespace MusicGame
         /// <summary>
         /// Pauses the regular tracks 
         /// </summary>
-        private void PauseTracks() {
+        public void PauseTracks() {
          
             //Stop the timer for regular tracks to stop them playing
             time.Stop();
@@ -781,7 +781,7 @@ namespace MusicGame
         /// <summary>
         /// Event that happens each time the solution timer ticks. Plays a sample from the solution track and updates the UI
         /// </summary>
-        private void SolutionTimer_Tick(object sender, ElapsedEventArgs e)
+        public void SolutionTimer_Tick(object sender, ElapsedEventArgs e)
         {
             //if it's played the full solution, stop playing it and return to playing the regular tracks
             if (currTime == len)
@@ -818,7 +818,7 @@ namespace MusicGame
         /// <summary>
         /// Event fired when the solution button is clicked. Plays the solution
         /// </summary>
-        private void SolutionButton_Click(object sender, RoutedEventArgs e)
+        public void SolutionButton_Click(object sender, RoutedEventArgs e)
         {
             Dispatcher.Invoke((Action)delegate {
                 SolutionButton.Content = "The solution is playing";
@@ -829,7 +829,7 @@ namespace MusicGame
         /// <summary>
         /// Plays the solution. Starts the solution timer and pauses all the other tracks 
         /// </summary>
-        private void PlaySolution() {
+        public void PlaySolution() {
             Dispatcher.Invoke((Action)delegate() {
                 if (currTime < len)
                 {
@@ -846,7 +846,7 @@ namespace MusicGame
         /// <summary>
         /// Stops the solution. Stops the solution timer and sets the regular tracks to playing
         /// </summary>
-        private void StopSolution() {
+        public void StopSolution() {
             solutionTimer.Stop();
             currTime = 0;
             solutionPlayCount = 0;
@@ -861,7 +861,7 @@ namespace MusicGame
         /// <summary>
         /// Activates the win state. Updates the UI with a congratulatory message and starts an audience applause playing
         /// </summary>
-        private void Win() {
+        public void Win() {
             time.Stop();
             consoleUI.Text = "Congrats you won!!";
             applause = new Sample("Assets/Sounds/applause.wav", "Applause", "cheer");
@@ -871,7 +871,7 @@ namespace MusicGame
         /// Loads all the animation frames into an array
         /// </summary>
         /// <returns>All animation frames as an array of ImageSources</returns>
-        private ImageSource[] GetAnimationFrames()
+        public ImageSource[] GetAnimationFrames()
         {
             try
             {
